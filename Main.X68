@@ -24,7 +24,6 @@ NSUB11:
     ADDA.W  #1,A1          *increment pointer
     BRA     LOOP   
     
-                           *still need to store new value.. using ORG
 
 * Put variables and constants here
 

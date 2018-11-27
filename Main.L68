@@ -1,0 +1,59 @@
+00001000 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.16.01
+Created On: 11/26/2018 11:27:46 PM
+
+00000000  =00000500                  1  INPSTART  EQU $500
+00000000  =00000550                  2  INPEND    EQU $550  
+00001000                             3      ORG    $1000
+00001000                             4  START:                
+00001000                             5  
+00001000  43F9 00001036              6      LEA     MESSAGE1, A1
+00001006  103C 000E                  7      MOVE.B  #14,D0          *displays input message
+0000100A  4E4F                       8      TRAP    #15
+0000100C                             9      
+0000100C  43F8 0500                 10      LEA INPSTART, A1
+00001010  103C 0002                 11      MOVE.B  #2,D0           *input location stored at A1, length in D1
+00001014  4E4F                      12      TRAP    #15
+00001016                            13     
+00001016                            14  LOOP:
+00001016  B23C 0000                 15      CMP.B   #0,D1
+0000101A  6F00 001A                 16      BLE     EXIT
+0000101E  1411                      17      MOVE.B (A1),D2
+00001020  0402 0030                 18      SUBI.B  #$30,D2     
+00001024  B43C 0009                 19      CMP.B   #$9,D2
+00001028  6F00 0004                 20      BLE     NSUB11
+0000102C  5F02                      21      SUBI.B #$7,D2
+0000102E                            22  NSUB11: 
+0000102E  1282                      23      MOVE.B  D2,(A1)
+00001030  5301                      24      SUBQ.B  #1,D1 
+00001032  5249                      25      ADDA.W  #1,A1          *increment pointer
+00001034  60E0                      26      BRA     LOOP   
+00001036                            27                             
+00001036                            28  
+00001036                            29  * Put variables and constants here
+00001036                            30  
+00001036                            31  EXIT:
+00001036  =0000000D                 32  CR       EQU    $0D
+00001036  =0000000A                 33  LF       EQU    $0A
+00001036= 45 6E 74 65 72 20 ...     34  MESSAGE1 DC.B   'Enter ASCII value to be converted to HEX',CR,LF,0
+00000500                            35      ORG $500
+00000500= 00000008                  36      DC.L 8
+00000504                            37  
+00000504                            38      END    START        ; last line of source     
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+CR                  D
+EXIT                1036
+INPEND              550
+INPSTART            500
+LF                  A
+LOOP                1016
+MESSAGE1            1036
+NSUB11              102E
+START               1000

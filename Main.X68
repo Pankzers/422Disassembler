@@ -1,4 +1,5 @@
 INPSTART  EQU $500
+INPEND    EQU $550  
     ORG    $1000
 START:                
 
@@ -23,7 +24,7 @@ NSUB11:
     SUBQ.B  #1,D1 
     ADDA.W  #1,A1          *increment pointer
     BRA     LOOP   
-    
+                           
 
 * Put variables and constants here
 
@@ -35,6 +36,7 @@ MESSAGE1 DC.B   'Enter ASCII value to be converted to HEX',CR,LF,0
     DC.L 8
 
     END    START        ; last line of source     
+
 *~Font name~Courier New~
 *~Font size~10~
 *~Tab type~1~

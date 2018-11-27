@@ -42,14 +42,146 @@ START:                  ; first instruction of program
 * NEG
     NEG.L D2
     NEG.L (A2)
+    NEG.L -(A2)
+    NEG.L (A2)+
     NEG.B D2
 * EOR
+    EOR.L #$FFFFFFFF,D2
+    EOR.L #$0000,D2
+    EOR.B #4,D2
+    EOR.B D1,D2
+    EOR.L D2,(A2)
+    EOR.L D1,(A1)+
+    EOR.L D2,-(A2)
+* LSR
+    LSR.B #2,D0
+    LSR.B D2,D0
+    LSR.W (A0)
+    LSR.W -(A0)
+    LSR.W (A0)+
+* LSL
+    LSL.B #3,D1
+    LSL.B D2,D1
+    LSL.W (A1)
+    LSL.W -(A1)
+    LSL.W (A1)+
+* ASR
+    ASR.B #3,D1
+    ASR.B D2,D1
+    ASR.W (A1)
+    ASR.W -(A1)
+    ASR.W (A1)+
+* ASL
+    ASR.B #3,D1
+    ASR.B D2,D1
+    ASR.W (A1)
+    ASR.W -(A1)
+    ASR.W (A1)+
+* ROL
+    ROL.B #3,D1
+    ROL.B D0,D1
+    ROL.W (A0)
+    ROL.W (A0)+
+    ROL.W -(A0)
+* ROR
+    ROL.B #3,D0
+    ROL.B D0,D1
+    ROL.W (A1)
+    ROL.W (A1)+
+    ROL.W -(A1)
+* BCLR
+    BCLR.L D0,D1
+    BCLR.L #1,D1
+    BCLR.B D0,(A0)
+    BCLR.B #1,(A0)
+    BCLR.B D0,(A0)+
+    BCLR.B #2,(A0)+
+    BCLR.B D0,-(A0)
+    BCLR.B #4,-(A0)
+* CMP
+    CMP.B D0,D1
+    CMP.B #1,D1
+    CMP.B (A0),D1
+    CMP.B (A0)+,D1
+    CMP.B -(A0),D1
     
-     
+    CMP.W D0,D1
+    CMP.W #1,D1
+    CMP.W (A0),D1
+    CMP.W (A0)+,D1
+    CMP.W -(A0),D1
+    CMP.W A0,D1
+    
+    CMP.L D0,D1
+    CMP.L #1,D1
+    CMP.L (A0),D1
+    CMP.L (A0)+,D1
+    CMP.L -(A0),D1
+    CMP.L A0,D1
+* CMPI
+    CMPI.B #1,D0
+    CMPI.B #1,(A0)
+    CMPI.B #1,(A0)+
+    CMPI.B #1,-(A0)
+    CMPI.B #1,$4000
+    CMPI.B #1,$00005000
+    
+    CMPI.W #1,D0
+    CMPI.W #1,(A0)
+    CMPI.W #1,(A0)+
+    CMPI.W #1,-(A0)
+    CMPI.W #1,$4000
+    CMPI.W #1,$00005000
+    
+    CMPI.L #1,D0
+    CMPI.L #1,(A0)
+    CMPI.L #1,(A0)+
+    CMPI.L #1,-(A0)
+    CMPI.L #1,$4000
+    CMPI.L #1,$00005000
+    
+* Bcc
+    BCC CC
+CC:
+    BCS CS
+CS:
+    BEQ EQ
+EQ:
+    BGE GE
+GE:
+    BGT GT
+GT:
+    BHI HI
+HI:
+    BLE LE
+LE:
+    BLS LS
+LS:
+    BLT LT
+LT:
+    BMI MI
+MI:
+    BNE NE
+NE:
+    BPL PL
+PL:
+    BVC VC
+VC:
+    BVS VS
+VS:
+* BRA
+    BRA BRA
+BRA:
+* JSR
+    JSR SUB
+    BRA END
+* RTS
+SUB:     
+    RTS
     
     
 * Put variables and constants here
-
+END:
     END    START        ; last line of source
 
 

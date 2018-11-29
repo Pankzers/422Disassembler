@@ -25,7 +25,6 @@ NSUB11:
     ADDA.W  #1,A1          *increment pointer
     BRA     LOOP   
 
-
 * MAIN PROGRAM LOOP
 *__________________    
 MAIN:
@@ -93,8 +92,8 @@ HEX_STRING:
 SR_NOP:
     NOP *DO STUFF HERE
     RTS   
-
-
+    
+    
 *EXIT
 *____
 EXIT:
@@ -112,7 +111,7 @@ M_INPINVALID      DC.B    'Input is invalid, try again',CR,LF,0
     DC.L 8
     ORG $520
     DC.L 8
-    END    START    
+    END    START
 
 *~Font name~Courier New~
 *~Font size~10~

@@ -57,21 +57,47 @@ INPSTR:
     
     
 *STRING TO HEX
+*PRECONDITIONS:
+*   Memory location of string must be loaded into A1
+*   Length of string must be loaded into D1
+*REGISTERS USED:
+*   D0,D1,D2,D3,D4,A2
+*POSTCONDITIONS:
+*   Hex equivalent of string is located at A1 with null character terminating in memory
+*NOTES:
+*   D0 Counts from 0 to string length
+*   D2 is the current working value converted from string
+*   D3 is the sum of all the working values
+*   D4 is the multiplier for the logical shift left on the current working value
+*   A2 Holds the starting address if A1
 *_____________
 STRING_HEX:
-    CMP.B   #0,D1
-    BLE     EXIT
-    MOVE.B (A1),D2
+    MOVE.B  #0,D0
+    MOVE.L  #0,D3
+    MOVEA.L A1,A2
+STRING_HEX_01:
+    MOVE.L  #0,D2
+    CMP.B   D0,D1
+    BNE     STRING_HEX_02
+    MOVE.L  D3,(A2)
+    ADDA.W  #4,A2
+    MOVE.B  #$FF,(A2)
+    RTS
+STRING_HEX_02:
+    MOVE.B  (A1),D2
     SUBI.B  #$30,D2     
     CMP.B   #$9,D2
     BLE     NSUB11
-    SUBI.B #$7,D2
-    RTS   
+    SUBI.B  #$7,D2   
 NSUB11: 
-    MOVE.B  D2,(A1)
-    SUBQ.B  #1,D1 
+    *MOVE.B  D2,(A1)
+    MOVE.B  #4,D4
+    MULS.W  D0,D4
+    LSL.L   D4,D2
+    OR.L    D2,D3
+    ADDQ.B  #1,D0 
     ADDA.W  #1,A1          *increment pointer
-    BRA     STRING_HEX   
+    BRA     STRING_HEX_01   
     
     
 *HEX TO STRING

@@ -1,0 +1,147 @@
+00001000 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.16.01
+Created On: 11/29/2018 1:43:06 PM
+
+00000000  =00000500                  1  INPSTART    EQU $500
+00000000  =00000520                  2  INPEND      EQU $520
+00001000                             3      ORG    $1000
+00001000                             4  START:                
+00001000                             5  
+00001000  43F9 000010AA              6      LEA     M_INPSTARTRANGE, A1
+00001006  103C 000E                  7      MOVE.B  #14,D0          *displays input message
+0000100A  4E4F                       8      TRAP    #15
+0000100C                             9      
+0000100C  43F8 0500                 10      LEA INPSTART, A1
+00001010  103C 0002                 11      MOVE.B  #2,D0           *input location stored at A1, length in D1
+00001014  4E4F                      12      TRAP    #15
+00001016                            13     
+00001016                            14  LOOP:
+00001016  B23C 0000                 15      CMP.B   #0,D1
+0000101A  6F00 008C                 16      BLE     EXIT
+0000101E  1411                      17      MOVE.B (A1),D2
+00001020  0402 0030                 18      SUBI.B  #$30,D2     
+00001024  B43C 0009                 19      CMP.B   #$9,D2
+00001028  6F00 0004                 20      BLE     NSUB11
+0000102C  5F02                      21      SUBI.B #$7,D2
+0000102E                            22  NSUB11: 
+0000102E  1282                      23      MOVE.B  D2,(A1)
+00001030  5301                      24      SUBQ.B  #1,D1 
+00001032  5249                      25      ADDA.W  #1,A1          *increment pointer
+00001034  60E0                      26      BRA     LOOP   
+00001036                            27  
+00001036                            28  
+00001036                            29  * MAIN PROGRAM LOOP
+00001036                            30  *__________________    
+00001036                            31  MAIN:
+00001036  4DF8 0500                 32      LEA INPSTART,A6
+0000103A  4FF8 0500                 33      LEA INPSTART,A7
+0000103E                            34      
+0000103E  45F8 0500                 35      LEA INPSTART,A2
+00001042  4EB9 0000106A             36      JSR USRINPUT
+00001048  45F8 0520                 37      LEA INPEND,A2
+0000104C  4EB9 0000106A             38      JSR USRINPUT
+00001052                            39  
+00001052                            40  MAINLOOP:
+00001052  BFCE                      41      CMP.L A6,A7     *Check for End of Range
+00001054  6C00 0052                 42      BGE EXIT            *Branch to Exit
+00001058                            43      
+00001058  0C51 4D71                 44      CMP.W #$4D71,(A1)   *Check for NOP OPWORD
+0000105C  6600 0008                 45      BNE NOT_NOP          *Branch to NOP Subroutine
+00001060  4EB9 000010A4             46      JSR SR_NOP
+00001066                            47  NOT_NOP:
+00001066  4E71                      48      NOP                 *PUT NON VALID OPWORD HANDLING HERE!
+00001068  60E8                      49      BRA MAINLOOP
+0000106A                            50  
+0000106A                            51  
+0000106A                            52  * USER INPUT
+0000106A                            53  * __________
+0000106A                            54  USRINPUT:
+0000106A  43F9 000010AA             55      LEA M_INPSTARTRANGE,A1
+00001070  103C 000E                 56      MOVE.B  #14,D0          *displays input message
+00001074  4E4F                      57      TRAP    #15
+00001076  6000 0012                 58      BRA INPSTR
+0000107A                            59      
+0000107A                            60  BADINPUT_START:
+0000107A  43F9 000010E4             61      LEA M_INPINVALID, A1
+00001080  103C 000E                 62      MOVE.B #14,D0
+00001084  4E4F                      63      TRAP #15
+00001086  6000 0002                 64      BRA INPSTR 
+0000108A                            65  
+0000108A                            66  INPSTR:
+0000108A  224A                      67      MOVEA.L A2,A1
+0000108C  103C 0002                 68      MOVE.B #2,D0
+00001090  4E4F                      69      TRAP #15
+00001092                            70  
+00001092  4E71                      71      NOP *Validate User Input stored in (A1)
+00001094                            72          *Convert to Hex
+00001094  4EB9 0000109C             73      JSR STRING_HEX
+0000109A  4E75                      74      RTS
+0000109C                            75      
+0000109C                            76      
+0000109C                            77  *STRING TO HEX
+0000109C                            78  *_____________
+0000109C                            79  STRING_HEX:
+0000109C  4E71                      80      NOP
+0000109E  4E75                      81      RTS
+000010A0                            82      
+000010A0                            83      
+000010A0                            84  *HEX TO STRING
+000010A0                            85  *_____________
+000010A0                            86  HEX_STRING:
+000010A0  4E71                      87      NOP
+000010A2  4E75                      88      RTS
+000010A4                            89      
+000010A4                            90      
+000010A4                            91  *NOP SUBROUTINE
+000010A4                            92  *______________
+000010A4                            93  SR_NOP:
+000010A4  4E71                      94      NOP *DO STUFF HERE
+000010A6  4E75                      95      RTS   
+000010A8                            96  
+000010A8                            97  
+000010A8                            98  *EXIT
+000010A8                            99  *____
+000010A8                           100  EXIT:
+000010A8  4E71                     101      NOP *REPLACE WITH EOF OUTPUT
+000010AA                           102      
+000010AA                           103      
+000010AA                           104  *CONSTANTS AND PARAMETERS
+000010AA                           105  *________________________
+000010AA  =0000000D                106  CR       EQU    $0D
+000010AA  =0000000A                107  LF       EQU    $0A
+000010AA= 45 6E 74 65 72 20 ...    108  M_INPSTARTRANGE   DC.B    'Enter Start Range of Memory',CR,LF,0
+000010C8= 45 6E 74 65 72 20 ...    109  M_INPENDRANGE     DC.B    'Enter End Range of Memory',CR,LF,0
+000010E4= 49 6E 70 75 74 20 ...    110  M_INPINVALID      DC.B    'Input is invalid, try again',CR,LF,0
+00000500                           111      ORG $500
+00000500= 00000008                 112      DC.L 8
+00000520                           113      ORG $520
+00000520= 00000008                 114      DC.L 8
+00000524                           115      END    START    
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+BADINPUT_START      107A
+CR                  D
+EXIT                10A8
+HEX_STRING          10A0
+INPEND              520
+INPSTART            500
+INPSTR              108A
+LF                  A
+LOOP                1016
+MAIN                1036
+MAINLOOP            1052
+M_INPENDRANGE       10C8
+M_INPINVALID        10E4
+M_INPSTARTRANGE     10AA
+NOT_NOP             1066
+NSUB11              102E
+SR_NOP              10A4
+START               1000
+STRING_HEX          109C
+USRINPUT            106A

@@ -8,7 +8,7 @@ START:
 MAIN:
     LEA INPSTART,A6
     LEA INPEND,A7
-    
+    LEA BUFF, A3
     LEA INPSTART,A2
     LEA M_INPSTARTRANGE,A1
     JSR USRINPUT
@@ -19,13 +19,56 @@ MAIN:
 MAINLOOP:
     CMP.L A6,A7     *Check for End of Range
     BGE EXIT            *Branch to Exit
-    
-    CMP.W #$4D71,(A1)   *Check for NOP OPWORD
-    BNE NOT_NOP          *Branch to NOP Subroutine
-    JSR SR_NOP
-NOT_NOP:
-    NOP                 *PUT NON VALID OPWORD HANDLING HERE!
-    BRA MAINLOOP
+    MOVEA.L A3,A4     * Buffer
+    MOVE.W (A1)+,D6   * Get and move instruction and increment
+                      * get Buffer
+    MOVE.W D6,D5      * move copy into d5 of instruction
+                   
+    AND.W #$F000,D5  *AND to get the first 4 bits 
+         
+    LEA table,A5      *load table into memory
+     
+    JSR 00(A5,D5)    *jump to corresponding section
+                    
+   
+
+*----------------------------------------------------------
+*Table that will use the 4 bits to jump to the correct instruction
+*-----------------------------------------------------------
+table 
+            JMP value0000
+            JMP value0001
+            JMP value0010
+            JMP value0011
+            JMP value0100
+            JMP value0101
+            JMP value0110
+            JMP value0111
+            JMP value1000
+            JMP value1001
+            JMP value1010
+            JMP value1011
+            JMP value1100
+            JMP value1101
+            JMP value1110
+            JMP value1111
+            
+            
+value0000               *Check for CMPI OPWORD
+
+
+
+
+
+
+            
+value0100 CMP.W #$4D71,(A1)   *Check for NOP OPWORD
+          BRA MAINLOOP
+
+*---------------------------------------------------------------
+*Set Text Buffer to Data can't disassemble instruction
+*---------------------------------------------------------------
+NOOPWORD
 
 
 * USER INPUT

@@ -65,10 +65,10 @@ value0011
 value0100   CMP.W #$4D71,(A1)   *Check for NOP OPWORD
             BNE N_NOP
             JSR SR_NOP
-            BRA MAINLOOP_END
+            BRA MAINLOOP
 N_NOP:
             JSR SR_DATA
-            BRA MAINLOOP_END
+            BRA MAINLOOP
             
 value0101
 value0110
@@ -81,10 +81,6 @@ value1100
 value1101
 value1110
 value1111
-
-MAINLOOP_END:
-    ADDA.W  #1,A1
-    BRA MAINLOOP
 
 *---------------------------------------------------------------
 *Set Text Buffer to Data can't disassemble instruction

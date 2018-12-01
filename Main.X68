@@ -6,10 +6,12 @@ BUFF        EQU $580
 START:                
 
 * MAIN PROGRAM LOOP
+* NOTES:
+*   WARNING: A5, A6, and D7 MUST not be overwritten by subroutines. They are system reserved currently.
 *__________________    
 MAIN:
-    LEA INPSTART,A6
-    LEA INPEND,A7
+    LEA INPSTART,A5
+    LEA INPEND,A6
     LEA BUFF, A3
     LEA INPSTART,A2
     LEA M_INPSTARTRANGE,A1
@@ -17,15 +19,16 @@ MAIN:
     LEA M_INPENDRANGE,A1
     LEA INPEND,A2
     JSR USRINPUT
+    MOVEA.L (A5),A5
     MOVEA.L (A6),A6
-    MOVEA.L (A7),A7
     
 MAINLOOP:
-    CMP.L   A6,A7       *Check for End of Range
+    CMP.L   A5,A6       *Check for End of Range
     BLE     EXIT        *Branch to Exit
     *MOVEA.L A3,A4       * Buffer
-    MOVE.W  (A6),D6       * Get and move instruction and increment
-    *MOVE.W  #$4D71,D6  *Test!
+    *MOVE.W  #$4D71,(A5) *Test!
+    MOVE.W  (A5),D6       * Get and move instruction and increment
+    
                    
     AND.W   #$F000,D6   *AND to get the first 4 bits
     MOVE.L  #10,D4
@@ -62,7 +65,7 @@ value0000               *Check for CMPI OPWORD
 value0001
 value0010
 value0011            
-value0100   CMP.W #$4D71,(A1)   *Check for NOP OPWORD
+value0100   CMP.W #$4D71,(A5)   *Check for NOP OPWORD
             BNE N_NOP
             JSR SR_NOP
             BRA MAINLOOP
@@ -185,13 +188,14 @@ NSUB11:
 *_____________
 HEX_STRING_L:
     MOVE.L  LONGNIBBLEMASK,D2
-    MOVE.B  #7,D4
+    MOVE.B  #8,D4
     LEA     STRHEXOUT,A2
     
 HEX_STRING_L_01:
     MOVE.L  D2,D3 *Make a copy of the mask
     AND.L   D1,D3 *And the address with the copy of the mask, overwriting the mask
     MOVE.L  D4,D5
+    SUBI.L  #1,D5
     MULS.W  #4,D5
     LSR.L   D5,D3 *Shift the resultant value to the LSB
     CMP.B   #$9,D3
@@ -205,6 +209,7 @@ HEX_STRING_L_03:
     ADDA.W  #1,A2 *Move the address pointer
     CMP.B   #0,D4
     BNE     HEX_STRING_L_02
+    MOVE.B  #$0,(A2)
     RTS
 HEX_STRING_L_02:
     BRA     HEX_STRING_L_01
@@ -213,7 +218,33 @@ HEX_STRING_L_02:
 *NOP SUBROUTINE
 *______________
 SR_NOP:
-    NOP *DO STUFF HERE
+    *READ OP WORD AND CONFIRM VALIDITY (Otherwise JSR to DATA and then RTS here.)
+    MOVE.W  (A5),D1
+    *As this must be exactly NOP to get here, no validation is necessary.
+    
+    *OUTPUT MEMORY ADDRESS AND OPERATION NAME
+    MOVE.L  A5,D1
+    JSR     HEX_STRING_L
+    LEA     STRHEXOUT,A1
+    MOVE.B  #14,D0 *TRAP TASK 14, Output A1 with no Carriage Return of Line Feed
+    TRAP    #15
+    MOVE.L  #$094E4F50,(A1)
+    MOVEA.L A1,A2
+    ADDA.W  #4,A2
+    MOVE.B  #$0,(A2)
+    MOVE.B  #13,D0
+    TRAP    #15
+    
+    *BRANCH FOR <EA> MODE AND READ EA INFO
+    *No branching is necessary as there are no arguments for NOP
+    
+    *OUTPUT EA INFORMATION
+    *No output is necessary here as there are no arguments for NOP
+    
+    *MOVE ADDRESS POINTER TO NEXT OPWORD
+    ADDA.W  #2,A5
+    
+    *RTS
     RTS  
 
 

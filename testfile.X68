@@ -4,7 +4,7 @@
 * Date       : 11/23/18
 * Description: Used to test the disassembler program
 *-----------------------------------------------------------
-    ORG    $1000
+    ORG    $7000
 START:                  ; first instruction of program
 
 * MOVE
@@ -139,7 +139,9 @@ START:                  ; first instruction of program
     CMPI.L #1,-(A0)
     CMPI.L #1,$4000
     CMPI.L #1,$00005000
-    
+
+* NOP
+    NOP
 * Bcc
     BCC CC
 CC:
@@ -179,10 +181,11 @@ BRA:
 SUB:     
     RTS
     
-    
 * Put variables and constants here
 END:
     END    START        ; last line of source
+
+
 
 
 *~Font name~Courier New~

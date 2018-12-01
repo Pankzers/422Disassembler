@@ -26,7 +26,7 @@ MAINLOOP:
     CMP.L   A5,A6       *Check for End of Range
     BLT     EXIT        *Branch to Exit
     *MOVEA.L A3,A4       * Buffer
-    MOVE.W  #$4D71,(A5) *Test!
+    *MOVE.W  #$4D71,(A5) *Test!
     MOVE.W  (A5),D6       * Get and move instruction and increment
     
                    
@@ -62,10 +62,22 @@ table       dc.l    value0000
             
             
 value0000               *Check for CMPI OPWORD
+            JSR SR_DATA
+            BRA MAINLOOP
+            
 value0001
+            JSR SR_DATA
+            BRA MAINLOOP
+            
 value0010
-value0011            
-value0100   CMP.W #$4D71,(A5)   *Check for NOP OPWORD
+            JSR SR_DATA
+            BRA MAINLOOP
+            
+value0011
+            JSR SR_DATA
+            BRA MAINLOOP
+            
+value0100   CMP.W #$4E71,(A5)   *Check for NOP OPWORD
             BNE N_NOP
             JSR SR_NOP
             BRA MAINLOOP
@@ -74,21 +86,48 @@ N_NOP:
             BRA MAINLOOP
             
 value0101
+            JSR SR_DATA
+            BRA MAINLOOP
+            
 value0110
+            JSR SR_DATA
+            BRA MAINLOOP
+            
 value0111
+            JSR SR_DATA
+            BRA MAINLOOP
+            
 value1000
+            JSR SR_DATA
+            BRA MAINLOOP
+            
 value1001
+            JSR SR_DATA
+            BRA MAINLOOP
+            
 value1010
+            JSR SR_DATA
+            BRA MAINLOOP
+            
 value1011
+            JSR SR_DATA
+            BRA MAINLOOP
+            
 value1100
+            JSR SR_DATA
+            BRA MAINLOOP
+            
 value1101
+            JSR SR_DATA
+            BRA MAINLOOP
+            
 value1110
+            JSR SR_DATA
+            BRA MAINLOOP
+            
 value1111
-
-*---------------------------------------------------------------
-*Set Text Buffer to Data can't disassemble instruction
-*---------------------------------------------------------------
-
+            JSR SR_DATA
+            BRA MAINLOOP
 
 * USER INPUT
 * __________
@@ -218,7 +257,39 @@ HEX_STRING_L_02:
 *DATA SUBROUTINE
 *_______________ 
 SR_DATA:  
-    NOP *DO STUFF HERE
+    *READ OP WORD AND CONFIRM VALIDITY (Otherwise JSR to DATA and then RTS here.)
+        *Reading OPWORD is pointless here, so it is skipped
+        *DATA requires no validation as it is, well Data.
+    
+    *OUTPUT MEMORY ADDRESS AND OPERATION NAME
+    MOVE.L  A5,D1
+    JSR     HEX_STRING_L
+    LEA     STRHEXOUT,A1
+    MOVE.B  #14,D0
+    TRAP    #15             *Output Address
+    MOVE.L  #$09444154,(A1)
+    MOVEA.L A1,A2
+    ADDA.W  #4,A2
+    MOVE.L  #$41090000,(A2)
+    TRAP    #15             *Output Operation name
+    
+    
+    
+    *BRANCH FOR <EA> MODE AND OUTPUT ARGUMENTS
+        *No EA for DATA, thus no branching here
+    MOVE.W  (A5),D1
+    SWAP    D1
+    JSR     HEX_STRING_L
+    LEA     STRHEXOUT,A1
+    MOVEA.L A1,A2
+    ADDA.W  #4,A2
+    MOVE.B  #$0,(A2)
+    MOVE.B  #13,D0
+    TRAP    #15             *Output Invalid Data found at current working word to terminal
+    *MOVE ADDRESS POINTER TO NEXT OPWORD
+    ADDA.W  #2,A5
+    
+    *RTS
     RTS 
     
     
@@ -226,8 +297,8 @@ SR_DATA:
 *______________
 SR_NOP:
     *READ OP WORD AND CONFIRM VALIDITY (Otherwise JSR to DATA and then RTS here.)
-    MOVE.W  (A5),D1
-    *As this must be exactly NOP to get here, no validation is necessary.
+        *Reading OPWORD is pointless here, so it is skipped
+        *As this must be exactly NOP to get here, no validation is necessary.
     
     *OUTPUT MEMORY ADDRESS AND OPERATION NAME
     MOVE.L  A5,D1
@@ -242,11 +313,8 @@ SR_NOP:
     MOVE.B  #13,D0
     TRAP    #15
     
-    *BRANCH FOR <EA> MODE AND READ EA INFO
-    *No branching is necessary as there are no arguments for NOP
-    
-    *OUTPUT EA INFORMATION
-    *No output is necessary here as there are no arguments for NOP
+    *BRANCH FOR <EA> MODE AND OUTPUT ARGUMENTS
+        *No branching is necessary as there are no arguments for NOP
     
     *MOVE ADDRESS POINTER TO NEXT OPWORD
     ADDA.W  #2,A5

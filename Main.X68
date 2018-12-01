@@ -12,8 +12,9 @@ START:
 MAIN:
     LEA INPSTART,A5
     LEA INPEND,A6
-    LEA BUFF, A3
     LEA INPSTART,A2
+    MOVE.B  #30,D7
+MAINBADRANGE:
     LEA M_INPSTARTRANGE,A1
     JSR USRINPUT
     LEA M_INPENDRANGE,A1
@@ -21,8 +22,12 @@ MAIN:
     JSR USRINPUT
     MOVEA.L (A5),A5
     MOVEA.L (A6),A6
+    CMP.L A6,A5
+    BGE MAINBADRANGE
     
 MAINLOOP:
+    CMP.B   #0,D7
+    BEQ     MAINLOOP_HOLD
     CMP.L   A5,A6       *Check for End of Range
     BLT     EXIT        *Branch to Exit
     *MOVEA.L A3,A4       * Buffer
@@ -36,9 +41,27 @@ MAINLOOP:
     MOVE.L  D6,A0
 
     MOVE.L  table(A0),A0    *load address of jump point from table using OPCODE
+    SUBI.B  #1,D7
     JMP     (A0)   *jump to corresponding section
                     
-   
+MAINLOOP_HOLD:
+    MOVE.B  #14,D0      *output enter message
+    LEA     M_HOLD,A1
+    TRAP    #15
+ENTER_HOLD:
+    MOVE.B  #5,D0       *Wait for user to press enter
+    TRAP    #15
+    
+    CMP.B   #$D,D1
+    BNE     ENTER_HOLD
+    
+    MOVE.W  #$FF00,D1   *Clear Terminal
+    MOVE.B  #11,D0
+    TRAP    #15
+    
+    MOVE.B  #30,D7      *Reset Counter
+    BRA MAINLOOP
+    
 
 *----------------------------------------------------------
 *Table that will use the 4 bits to jump to the correct instruction
@@ -534,8 +557,10 @@ SR_RTS:
 *EXIT
 *____
 EXIT:
-    NOP *REPLACE WITH EOF OUTPUT
-    
+    LEA     STRHEXOUT,A1
+    MOVE.L  #$454F4600,(A1)
+    MOVE.B  #14,D0
+    TRAP    #15
 
     
     
@@ -547,6 +572,7 @@ LONGNIBBLEMASK      DC.L    $F0000000
 M_INPSTARTRANGE     DC.B    'Enter Start Range of Memory',CR,LF,0
 M_INPENDRANGE       DC.B    'Enter End Range of Memory',CR,LF,0
 M_INPINVALID        DC.B    'Input is invalid, try again',CR,LF,0
+M_HOLD              DC.B    'Press Enter to scroll',0
     ORG     $500
     DC.L    8
     ORG     $520

@@ -1,6 +1,7 @@
 INPSTART    EQU $500
 INPEND      EQU $520
 STRHEXOUT   EQU $540
+BUFF        EQU $580
     ORG    $1000
 START:                
 
@@ -16,7 +17,7 @@ MAIN:
     LEA M_INPENDRANGE,A1
     LEA INPEND,A2
     JSR USRINPUT
-
+    
 MAINLOOP:
     CMP.L A6,A7     *Check for End of Range
     BGE EXIT            *Branch to Exit
@@ -56,15 +57,22 @@ table
             
             
 value0000               *Check for CMPI OPWORD
-
-
-
-
-
-
-            
+value0001
+value0010
+value0011            
 value0100 CMP.W #$4D71,(A1)   *Check for NOP OPWORD
           BRA MAINLOOP
+value0101
+value0110
+value0111
+value1000
+value1001
+value1010
+value1011
+value1100
+value1101
+value1110
+value1111
 
 *---------------------------------------------------------------
 *Set Text Buffer to Data can't disassemble instruction
@@ -106,12 +114,15 @@ INPSTR_01:
     ADDA.W  #1,A1
     BRA     INPSTR_01
 INPSTR_02:    
-    
-    NOP *Validate User Input stored in (A1)
-        *Convert to Hex
     MOVEA.L A2,A1
     MOVE.B  D2,D1
     JSR STRING_HEX
+    CMPA.L  A6,A7
+    BGE     BADINPUT
+    CMPA.L  $1000,A6
+    BLT     BADINPUT
+    CMPA.L  $1000,A7
+    BLT     BADINPUT
     RTS
     
     
@@ -220,6 +231,7 @@ M_INPINVALID        DC.B    'Input is invalid, try again',CR,LF,0
     ORG     $520
     DC.L    8
     END     START
+
 
 
 

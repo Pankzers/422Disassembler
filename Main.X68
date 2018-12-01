@@ -23,18 +23,17 @@ MAIN:
 MAINLOOP:
     CMP.L   A6,A7       *Check for End of Range
     BLE     EXIT        *Branch to Exit
-    MOVEA.L A3,A4       * Buffer
-    *MOVE.W  (A1),D6       * Get and move instruction and increment
-    MOVE.W  #$4D71,D6
-                        * get Buffer
-    MOVE.W  D6,D5       * move copy into d5 of instruction
+    *MOVEA.L A3,A4       * Buffer
+    MOVE.W  (A6),D6       * Get and move instruction and increment
+    *MOVE.W  #$4D71,D6  *Test!
                    
-    AND.W   #$F000,D5   *AND to get the first 4 bits 
-         
-    LEA     table,A5    *load table into memory
-     
-    JSR     00(A5,D5)   *jump to corresponding section
-    ADDA.W  #1,A1
+    AND.W   #$F000,D6   *AND to get the first 4 bits
+    MOVE.L  #10,D4
+    LSR.L   D4,D6
+    MOVE.L  D6,A0
+
+    MOVE.L  table(A0),A0    *load address of jump point from table using OPCODE
+    JMP     (A0)   *jump to corresponding section
                     
    
 
@@ -66,10 +65,10 @@ value0011
 value0100   CMP.W #$4D71,(A1)   *Check for NOP OPWORD
             BNE N_NOP
             JSR SR_NOP
-            BRA MAINLOOP
+            BRA MAINLOOP_END
 N_NOP:
             JSR SR_DATA
-            BRA MAINLOOP
+            BRA MAINLOOP_END
             
 value0101
 value0110
@@ -82,6 +81,10 @@ value1100
 value1101
 value1110
 value1111
+
+MAINLOOP_END:
+    ADDA.W  #1,A1
+    BRA MAINLOOP
 
 *---------------------------------------------------------------
 *Set Text Buffer to Data can't disassemble instruction

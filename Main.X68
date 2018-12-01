@@ -214,6 +214,13 @@ HEX_STRING_L_03:
 HEX_STRING_L_02:
     BRA     HEX_STRING_L_01
     
+
+*DATA SUBROUTINE
+*_______________ 
+SR_DATA:  
+    NOP *DO STUFF HERE
+    RTS 
+    
     
 *NOP SUBROUTINE
 *______________
@@ -245,18 +252,223 @@ SR_NOP:
     ADDA.W  #2,A5
     
     *RTS
+    RTS   
+ 
+ 
+*MOVE SUBROUTINE
+*______________
+SR_MOVE:
+    NOP *DO STUFF HERE
+    RTS      
+ 
+ 
+*MOVEA SUBROUTINE
+*______________
+SR_MOVEA:
+    NOP *DO STUFF HERE
+    RTS      
+ 
+ 
+*MOVEM SUBROUTINE
+*______________
+SR_MOVEM:
+    NOP *DO STUFF HERE
+    RTS      
+ 
+  
+*ADD SUBROUTINE
+*______________
+SR_ADD:
+    NOP *DO STUFF HERE
+    RTS 
+   
+   
+*ADDA SUBROUTINE
+*______________
+SR_ADDA:
+    NOP *DO STUFF HERE
+    RTS   
+    
+    
+*SUB SUBROUTINE
+*______________
+SR_SUB:
+    NOP *DO STUFF HERE
     RTS  
 
 
-*DATA SUBROUTINE
-*_______________ 
-SR_DATA:  
+*SUBQ SUBROUTINE
+*______________
+SR_SUBQ:
+    NOP *DO STUFF HERE
+    RTS  
 
+
+*CMP SUBROUTINE
+*______________
+SR_CMP:
+    NOP *DO STUFF HERE
+    RTS  
+ 
+ 
+*CMPI SUBROUTINE
+*______________
+SR_CMPI:
+    NOP *DO STUFF HERE
+    RTS    
+
+
+*MULS SUBROUTINE
+*______________
+SR_MULS:
+    NOP *DO STUFF HERE
+    RTS    
+
+
+*DIVS SUBROUTINE
+*______________
+SR_DIVS:
+    NOP *DO STUFF HERE
+    RTS  
+
+
+*LEA SUBROUTINE
+*______________
+SR_LEA:
+    NOP *DO STUFF HERE
+    RTS
+
+
+*NEG SUBROUTINE
+*______________
+SR_NEG:
+    NOP *DO STUFF HERE
+    RTS  
     
+    
+*OR SUBROUTINE
+*______________
+SR_OR:
+    NOP *DO STUFF HERE
+    RTS  
+
+*ORI SUBROUTINE
+*______________
+SR_ORI:
+    NOP *DO STUFF HERE
+    RTS 
+    
+ 
+*EOR SUBROUTINE
+*______________
+SR_EOR:
+    NOP *DO STUFF HERE
+    RTS 
+
+  
+*LSR SUBROUTINE
+*______________
+SR_LSR:
+    NOP *DO STUFF HERE
+    RTS     
+
+*LSL SUBROUTINE
+*______________
+SR_LSL:
+    NOP *DO STUFF HERE
+    RTS 
+
+
+*ASR SUBROUTINE
+*______________
+SR_ASR:
+    NOP *DO STUFF HERE
+    RTS 
+    
+
+*ASL SUBROUTINE
+*______________
+SR_ASL:
+    NOP *DO STUFF HERE
+    RTS 
+
+
+*ROL SUBROUTINE
+*______________
+SR_ROL:
+    NOP *DO STUFF HERE
+    RTS     
+    
+    
+*ROR SUBROUTINE
+*______________
+SR_ROR:
+    NOP *DO STUFF HERE
+    RTS 
+  
+  
+*BCS SUBROUTINE
+*______________
+SR_BCS:
+    NOP *DO STUFF HERE
+    RTS 
+    
+
+*BGE SUBROUTINE
+*______________
+SR_BGE:
+    NOP *DO STUFF HERE
+    RTS     
+    
+    
+*BLT SUBROUTINE
+*______________
+SR_BLT:
+    NOP *DO STUFF HERE
+    RTS     
+    
+    
+*BVC SUBROUTINE
+*______________
+SR_BVC:
+    NOP *DO STUFF HERE
+    RTS 
+  
+  
+*BCLR SUBROUTINE
+*______________
+SR_BCLR:
+    NOP *DO STUFF HERE
+    RTS     
+    
+    
+*BRA SUBROUTINE
+*______________
+SR_BRA:
+    NOP *DO STUFF HERE
+    RTS    
+    
+    
+*JSR SUBROUTINE
+*______________
+SR_JSR:
+    NOP *DO STUFF HERE
+    RTS 
+    
+    
+*RTS SUBROUTINE
+*______________
+SR_RTS:
+    NOP *DO STUFF HERE
+    RTS     
+
+   
 *EXIT
 *____
 EXIT:
     NOP *REPLACE WITH EOF OUTPUT
+    
+
     
     
 *CONSTANTS AND PARAMETERS
@@ -272,6 +484,8 @@ M_INPINVALID        DC.B    'Input is invalid, try again',CR,LF,0
     ORG     $520
     DC.L    8
     END     START
+
+
 
 
 

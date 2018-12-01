@@ -24,9 +24,9 @@ MAIN:
     
 MAINLOOP:
     CMP.L   A5,A6       *Check for End of Range
-    BLE     EXIT        *Branch to Exit
+    BLT     EXIT        *Branch to Exit
     *MOVEA.L A3,A4       * Buffer
-    *MOVE.W  #$4D71,(A5) *Test!
+    MOVE.W  #$4D71,(A5) *Test!
     MOVE.W  (A5),D6       * Get and move instruction and increment
     
                    
@@ -484,6 +484,7 @@ M_INPINVALID        DC.B    'Input is invalid, try again',CR,LF,0
     ORG     $520
     DC.L    8
     END     START
+
 
 
 

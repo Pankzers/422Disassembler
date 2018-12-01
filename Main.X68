@@ -17,51 +17,60 @@ MAIN:
     LEA M_INPENDRANGE,A1
     LEA INPEND,A2
     JSR USRINPUT
+    MOVEA.L (A6),A6
+    MOVEA.L (A7),A7
     
 MAINLOOP:
-    CMP.L A6,A7     *Check for End of Range
-    BGE EXIT            *Branch to Exit
-    MOVEA.L A3,A4     * Buffer
-    MOVE.W (A1)+,D6   * Get and move instruction and increment
-                      * get Buffer
-    MOVE.W D6,D5      * move copy into d5 of instruction
+    CMP.L   A6,A7       *Check for End of Range
+    BLE     EXIT        *Branch to Exit
+    MOVEA.L A3,A4       * Buffer
+    *MOVE.W  (A1),D6       * Get and move instruction and increment
+    MOVE.W  #$4D71,D6
+                        * get Buffer
+    MOVE.W  D6,D5       * move copy into d5 of instruction
                    
-    AND.W #$F000,D5  *AND to get the first 4 bits 
+    AND.W   #$F000,D5   *AND to get the first 4 bits 
          
-    LEA table,A5      *load table into memory
+    LEA     table,A5    *load table into memory
      
-    JSR 00(A5,D5)    *jump to corresponding section
+    JSR     00(A5,D5)   *jump to corresponding section
+    ADDA.W  #1,A1
                     
    
 
 *----------------------------------------------------------
 *Table that will use the 4 bits to jump to the correct instruction
 *-----------------------------------------------------------
-table 
-            JMP value0000
-            JMP value0001
-            JMP value0010
-            JMP value0011
-            JMP value0100
-            JMP value0101
-            JMP value0110
-            JMP value0111
-            JMP value1000
-            JMP value1001
-            JMP value1010
-            JMP value1011
-            JMP value1100
-            JMP value1101
-            JMP value1110
-            JMP value1111
+table       dc.l    value0000
+            dc.l    value0001
+            dc.l    value0010
+            dc.l    value0011
+            dc.l    value0100
+            dc.l    value0101
+            dc.l    value0110
+            dc.l    value0111
+            dc.l    value1000
+            dc.l    value1001
+            dc.l    value1010
+            dc.l    value1011
+            dc.l    value1100
+            dc.l    value1101
+            dc.l    value1110
+            dc.l    value1111
             
             
 value0000               *Check for CMPI OPWORD
 value0001
 value0010
 value0011            
-value0100 CMP.W #$4D71,(A1)   *Check for NOP OPWORD
-          BRA MAINLOOP
+value0100   CMP.W #$4D71,(A1)   *Check for NOP OPWORD
+            BNE N_NOP
+            JSR SR_NOP
+            BRA MAINLOOP
+N_NOP:
+            JSR SR_DATA
+            BRA MAINLOOP
+            
 value0101
 value0110
 value0111
@@ -77,7 +86,6 @@ value1111
 *---------------------------------------------------------------
 *Set Text Buffer to Data can't disassemble instruction
 *---------------------------------------------------------------
-NOOPWORD
 
 
 * USER INPUT
@@ -117,11 +125,8 @@ INPSTR_02:
     MOVEA.L A2,A1
     MOVE.B  D2,D1
     JSR STRING_HEX
-    CMPA.L  A6,A7
-    BGE     BADINPUT
-    CMPA.L  $1000,A6
-    BLT     BADINPUT
-    CMPA.L  $1000,A7
+    MOVE.L  (A1),D4
+    CMP.L   #$1000,D4
     BLT     BADINPUT
     RTS
     
@@ -149,6 +154,7 @@ STRING_HEX_01:
     MOVE.L  #0,D2
     CMP.B   D0,D1
     BNE     STRING_HEX_02
+    MOVEA.L A2,A1
     MOVE.L  D3,(A2)
     ADDA.W  #4,A2
     MOVE.B  #$FF,(A2)
@@ -209,8 +215,13 @@ HEX_STRING_L_02:
 *______________
 SR_NOP:
     NOP *DO STUFF HERE
-    RTS   
-    
+    RTS  
+
+
+*DATA SUBROUTINE
+*_______________ 
+SR_DATA:  
+
     
 *EXIT
 *____

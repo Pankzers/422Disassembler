@@ -30,8 +30,6 @@ MAINLOOP:
     BEQ     MAINLOOP_HOLD
     CMP.L   A5,A6       *Check for End of Range
     BLT     EXIT        *Branch to Exit
-    *MOVEA.L A3,A4       * Buffer
-    *MOVE.W  #$4D71,(A5) *Test!
     MOVE.W  (A5),D6       * Get and move instruction and increment
     
                    
@@ -105,6 +103,11 @@ value0100   CMP.W #$4E71,(A5)   *Check for NOP OPWORD
             JSR SR_NOP
             BRA MAINLOOP
 N_NOP:
+            CMP.W #$4E75,(A5)   *Check for RTS OPWORD
+            BNE N_RTS
+            JSR SR_RTS
+            BRA MAINLOOP
+N_RTS:
             JSR SR_DATA
             BRA MAINLOOP
             
@@ -550,8 +553,32 @@ SR_JSR:
 *RTS SUBROUTINE
 *______________
 SR_RTS:
-    NOP *DO STUFF HERE
-    RTS     
+    *READ OP WORD AND CONFIRM VALIDITY (Otherwise JSR to DATA and then RTS here.)
+        *Reading OPWORD is pointless here, so it is skipped
+        *As this must be exactly NOP to get here, no validation is necessary.
+    
+    *OUTPUT MEMORY ADDRESS AND OPERATION NAME
+    MOVE.L  A5,D1
+    JSR     HEX_STRING_L
+    LEA     STRHEXOUT,A1
+    MOVE.B  #14,D0 *TRAP TASK 14, Output A1 with no Carriage Return of Line Feed
+    TRAP    #15
+    *MOVE.L  #$094E4F50,(A1)
+    MOVE.L  #$09525453,(A1)
+    MOVEA.L A1,A2
+    ADDA.W  #4,A2
+    MOVE.B  #$0,(A2)
+    MOVE.B  #13,D0
+    TRAP    #15
+    
+    *BRANCH FOR <EA> MODE AND OUTPUT ARGUMENTS
+        *No branching is necessary as there are no arguments for NOP
+    
+    *MOVE ADDRESS POINTER TO NEXT OPWORD
+    ADDA.W  #2,A5
+    
+    *RTS
+    RTS       
 
    
 *EXIT
@@ -578,6 +605,8 @@ M_HOLD              DC.B    'Press Enter to scroll',0
     ORG     $520
     DC.L    8
     END     START
+
+
 
 
 

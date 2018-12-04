@@ -82,10 +82,29 @@ table       dc.l    value0000
             dc.l    value1111
             
             
-value0000               *Check for CMPI OPWORD
-            JSR SR_DATA
+value0000   CMP.W #$0000,(A5)      *Check for CMPI OPWORD. CHANGE HEX!
+            BNE N_CMPI
+            JSR SR_CMPI
             BRA MAINLOOP
             
+N_CMPI:    
+            CMP.W #$0000,(A5)      *Check for ORI OPWORD. CHANGE HEX!
+            BNE N_ORI
+            JSR SR_ORI
+            BRA MAINLOOP
+            
+N_ORI:      
+            CMP.W #$0000,(A5)      *Check for BCLR OPWORD. CHANGE HEX!
+            BNE N_BCLR
+            JSR SR_BCLR
+            BRA MAINLOOP 
+
+N_BCLR:      
+            *CMP.W #$0000,(A5)     *not sure where to branch with last opword
+            BNE SR_DATA          
+            JSR SR_BCLR
+            BRA MAINLOOP
+         
 value0001
             JSR SR_DATA
             BRA MAINLOOP
@@ -102,62 +121,190 @@ value0100   CMP.W #$4E71,(A5)   *Check for NOP OPWORD
             BNE N_NOP
             JSR SR_NOP
             BRA MAINLOOP
+            
 N_NOP:
             CMP.W #$4E75,(A5)   *Check for RTS OPWORD
             BNE N_RTS
             JSR SR_RTS
             BRA MAINLOOP
+            
 N_RTS:
             EOR.L D1,D1
             MOVE.W (A5),D1
             AND.W #$FF00,D1
-            CMP.W #$4400,D1
+            CMP.W #$4400,D1     *Check for NEG OPWORD
             BNE N_NEG
             JSR SR_NEG
             BRA MAINLOOP
+            
 N_NEG:
-            JSR SR_DATA
+            CMP.W #$0000,(A5)   *Check for LEA OPWORD. CHANGE HEX!
+            BNE N_LEA
+            JSR SR_LEA
+            BRA MAINLOOP
+                       
+N_LEA:      
+            CMP.W #$0000,(A5)   *Check for JSR OPWORD. CHANGE HEX!
+            BNE N_JSR
+            JSR SR_JSR
+            BRA MAINLOOP
+                     
+N_JSR:      
+            JSR SR_JSR           *wasnt sure where to branch now
+            BRA MAINLOOP           
+                        
+            
+value0101   CMP.W #$0000,(A5)    *Check for SUBQ OPWORD. CHANGE HEX!
+            BNE SR_DATA          *Not sure where to branch (SUBQ alone in 0101)
+            JSR SR_SUBQ
             BRA MAINLOOP
             
-value0101
-            JSR SR_DATA
+value0110   CMP.W #$0000,(A5)    *Check for BCS OPWORD. CHANGE HEX!
+            BNE N_BCS
+            JSR SR_BCS
             BRA MAINLOOP
             
-value0110
-            JSR SR_DATA
-            BRA MAINLOOP
+N_BCS: 
+            CMP.W #$0000,(A5)      *Check for BGE OPWORD. CHANGE HEX!
+            BNE N_BGE
+            JSR SR_BGE
+            BRA MAINLOOP    
+
+N_BGE:
+            CMP.W #$0000,(A5)      *Check for BLT OPWORD. CHANGE HEX!
+            BNE N_BLT
+            JSR SR_BLT
+            BRA MAINLOOP    
+
+N_BLT:
+            CMP.W #$0000,(A5)      *Check for BVC OPWORD. CHANGE HEX!
+            BNE N_BVC
+            JSR SR_BVC
+            BRA MAINLOOP   
+
+N_BVC:
+            CMP.W #$0000,(A5)      *Check for BRA OPWORD. CHANGE HEX!
+            BNE N_BRA
+            JSR SR_BRA
+            BRA MAINLOOP 
+
+N_BRA:      
+            *CMP.W #$0000,(A5)    
+            BNE SR_DATA            *not sure where to branch with last opword
+            JSR SR_BRA
+            BRA MAINLOOP          
+            
             
 value0111
             JSR SR_DATA
             BRA MAINLOOP
             
-value1000
-            JSR SR_DATA
+value1000   CMP.W #$0000,(A5)      *Check for DIVS OPWORD. CHANGE HEX!
+            BNE N_DIVS
+            JSR SR_DIVS
             BRA MAINLOOP
             
-value1001
-            JSR SR_DATA
+N_DIVS:
+            CMP.W #$0000,(A5)      *Check for OR OPWORD. CHANGE HEX!
+            BNE N_OR
+            JSR SR_OR
+            BRA MAINLOOP 
+            
+N_OR:
+            *CMP.W #$0000,(A5)     
+            BNE SR_DATA            *not sure where to branch with last opword
+            JSR SR_OR
+            BRA MAINLOOP  
+                 
+                      
+value1001   CMP.W #$0000,(A5)      *Check for SUB OPWORD. CHANGE HEX!
+            BNE SR_DATA            *Not sure where to branch (SUB alone in 0101)
+            JSR SR_SUB
             BRA MAINLOOP
             
 value1010
             JSR SR_DATA
             BRA MAINLOOP
             
-value1011
-            JSR SR_DATA
+value1011   CMP.W #$0000,(A5)      *Check for CMP OPWORD. CHANGE HEX!
+            BNE N_CMP
+            JSR SR_CMP
+            BRA MAINLOOP
+
+N_CMP:
+            CMP.W #$0000,(A5)      *Check for EOR OPWORD. CHANGE HEX!
+            BNE N_EOR
+            JSR SR_EOR
             BRA MAINLOOP
             
+N_EOR:
+            *CMP.W #$0000,(A5)     
+            BNE SR_DATA           *not sure where to branch with last opword
+            JSR SR_EOR
+            BRA MAINLOOP           
+                    
 value1100
             JSR SR_DATA
             BRA MAINLOOP
             
-value1101
-            JSR SR_DATA
+value1101   CMP.W #$0000,(A5)     *Check for ADD OPWORD. CHANGE HEX!
+            BNE N_ADD
+            JSR SR_ADD
+            BRA MAINLOOP
+
+N_ADD:
+            CMP.W #$0000,(A5)     *Check for ADDA OPWORD. CHANGE HEX!
+            BNE N_ADDA
+            JSR SR_ADDA
             BRA MAINLOOP
             
-value1110
-            JSR SR_DATA
+N_ADDA:
+            *CMP.W #$0000,(A5)     
+            BNE SR_DATA           *not sure where to branch with last opword
+            JSR SR_ADDA
+            BRA MAINLOOP                
+            
+                       
+value1110   CMP.W #$0000,(A5)     *Check for LSL OPWORD. CHANGE HEX!
+            BNE N_LSL
+            JSR SR_LSL
             BRA MAINLOOP
+
+N_LSL:
+            CMP.W #$0000,(A5)    *Check for LSR OPWORD. CHANGE HEX!
+            BNE N_LSR
+            JSR SR_LSR
+            BRA MAINLOOP
+            
+N_LSR:
+            CMP.W #$0000,(A5)    *Check for ASL OPWORD. CHANGE HEX!
+            BNE N_ASL
+            JSR SR_ASL
+            BRA MAINLOOP     
+
+N_ASL:
+            CMP.W #$0000,(A5)    *Check for ASR OPWORD. CHANGE HEX!
+            BNE N_ASR
+            JSR SR_ASR
+            BRA MAINLOOP  
+
+N_ASR:
+            CMP.W #$0000,(A5)     *Check for ROL OPWORD. CHANGE HEX!
+            BNE N_ROL
+            JSR SR_ROL
+            BRA MAINLOOP   
+
+N_ROL:
+            CMP.W #$0000,(A5)     *Check for ROR OPWORD. CHANGE HEX!
+            BNE N_ROR
+            JSR SR_ROR
+            BRA MAINLOOP 
+            
+N_ROR:
+            *CMP.W #$0000,(A5)     
+            BNE SR_DATA          *not sure where to branch with last opword
+            JSR SR_ROR
+            BRA MAINLOOP              
             
 value1111
             JSR SR_DATA
@@ -409,7 +556,7 @@ SR_LEA:
 SR_NEG:
     *DEFINE RELEVANT LISTS
 NEG_SIZE    DC.L    SIZE_BYTE,SIZE_WORD,SIZE_LONG,SR_DATA
-NEG_EA     DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_LONG,EA_ABS_SHORT,SR_DATA,SR_DATA,SR_DATA
+NEG_EA      DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_LONG,EA_ABS_SHORT,SR_DATA,SR_DATA,SR_DATA
     *READ OP WORD AND CONFIRM VALIDITY (Otherwise JMP to DATA and then RTS to main.)
     MOVEA.L A5,A2
     ADDA.W  #1,A2
@@ -712,6 +859,7 @@ M_HOLD              DC.B    'Press Enter to scroll',0
     ORG     $520
     DC.L    8
     END     START
+
 
 
 

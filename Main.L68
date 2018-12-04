@@ -1,141 +1,868 @@
 00001000 Starting Address
 Assembler used: EASy68K Editor/Assembler v5.16.01
-Created On: 11/29/2018 2:41:54 PM
+Created On: 12/4/2018 4:51:29 AM
 
 00000000  =00000500                  1  INPSTART    EQU $500
 00000000  =00000520                  2  INPEND      EQU $520
-00001000                             3      ORG    $1000
-00001000                             4  START:                
-00001000                             5  
-00001000                             6  * MAIN PROGRAM LOOP
-00001000                             7  *__________________    
-00001000                             8  MAIN:
-00001000  4DF8 0500                  9      LEA INPSTART,A6
-00001004  4FF8 0520                 10      LEA INPEND,A7
-00001008                            11      
-00001008  45F8 0500                 12      LEA INPSTART,A2
-0000100C  43F9 000010BC             13      LEA M_INPSTARTRANGE,A1
-00001012  4EB9 00001040             14      JSR USRINPUT
-00001018  43F9 000010DA             15      LEA M_INPENDRANGE,A1
-0000101E  45F8 0520                 16      LEA INPEND,A2
-00001022  4EB9 00001040             17      JSR USRINPUT
-00001028                            18  
-00001028                            19  MAINLOOP:
-00001028  BFCE                      20      CMP.L A6,A7     *Check for End of Range
-0000102A  6C00 008E                 21      BGE EXIT            *Branch to Exit
-0000102E                            22      
-0000102E  0C51 4D71                 23      CMP.W #$4D71,(A1)   *Check for NOP OPWORD
-00001032  6600 0008                 24      BNE NOT_NOP          *Branch to NOP Subroutine
-00001036  4EB9 000010B6             25      JSR SR_NOP
-0000103C                            26  NOT_NOP:
-0000103C  4E71                      27      NOP                 *PUT NON VALID OPWORD HANDLING HERE!
-0000103E  60E8                      28      BRA MAINLOOP
-00001040                            29  
-00001040                            30  
-00001040                            31  * USER INPUT
-00001040                            32  * __________
-00001040                            33  USRINPUT:
-00001040  103C 000E                 34      MOVE.B  #14,D0          *displays input message
-00001044  4E4F                      35      TRAP    #15
-00001046  6000 0012                 36      BRA INPSTR
-0000104A                            37      
-0000104A                            38  BADINPUT:
-0000104A  43F9 000010F6             39      LEA M_INPINVALID, A1
-00001050  103C 000E                 40      MOVE.B #14,D0
-00001054  4E4F                      41      TRAP #15
-00001056  6000 0002                 42      BRA INPSTR 
-0000105A                            43  
-0000105A                            44  INPSTR:
-0000105A  224A                      45      MOVEA.L A2,A1
-0000105C  103C 0002                 46      MOVE.B #2,D0
-00001060  4E4F                      47      TRAP #15
-00001062                            48  
-00001062  0C11 0000                 49      CMP.B #$0,(A1)
-00001066  67E2                      50      BEQ BADINPUT
-00001068  B23C 0006                 51      CMP.B #6,D1
-0000106C  6EDC                      52      BGT BADINPUT
-0000106E  4E71                      53      NOP *Validate User Input stored in (A1)
-00001070                            54          *Convert to Hex
-00001070  4EB9 00001078             55      JSR STRING_HEX
-00001076  4E75                      56      RTS
-00001078                            57      
-00001078                            58      
-00001078                            59  *STRING TO HEX
-00001078                            60  *PRECONDITIONS:
-00001078                            61  *   Memory location of string must be loaded into A1
-00001078                            62  *   Length of string must be loaded into D1
-00001078                            63  *REGISTERS USED:
-00001078                            64  *   D0,D1,D2,D3,D4,A2
-00001078                            65  *POSTCONDITIONS:
-00001078                            66  *   Hex equivalent of string is located at A1 with null character terminating in memory
-00001078                            67  *NOTES:
-00001078                            68  *   D0 Counts from 0 to string length
-00001078                            69  *   D2 is the current working value converted from string
-00001078                            70  *   D3 is the sum of all the working values
-00001078                            71  *   D4 is the multiplier for the logical shift left on the current working value
-00001078                            72  *   A2 Holds the starting address if A1
-00001078                            73  *_____________
-00001078                            74  STRING_HEX:
-00001078  103C 0000                 75      MOVE.B  #0,D0
-0000107C  7600                      76      MOVE.L  #0,D3
-0000107E  2449                      77      MOVEA.L A1,A2
-00001080                            78  STRING_HEX_01:
-00001080  7400                      79      MOVE.L  #0,D2
-00001082  B200                      80      CMP.B   D0,D1
-00001084  6600 000C                 81      BNE     STRING_HEX_02
-00001088  2483                      82      MOVE.L  D3,(A2)
-0000108A  584A                      83      ADDA.W  #4,A2
-0000108C  14BC 00FF                 84      MOVE.B  #$FF,(A2)
-00001090  4E75                      85      RTS
-00001092                            86  STRING_HEX_02:
-00001092  1411                      87      MOVE.B  (A1),D2
-00001094  0402 0030                 88      SUBI.B  #$30,D2     
-00001098  B43C 0009                 89      CMP.B   #$9,D2
-0000109C  6F00 0004                 90      BLE     NSUB11
-000010A0  5F02                      91      SUBI.B  #$7,D2   
-000010A2                            92  NSUB11: 
-000010A2                            93      *MOVE.B  D2,(A1)
-000010A2  183C 0004                 94      MOVE.B  #4,D4
-000010A6  C9C0                      95      MULS.W  D0,D4
-000010A8  E9AA                      96      LSL.L   D4,D2
-000010AA  8682                      97      OR.L    D2,D3
-000010AC  5200                      98      ADDQ.B  #1,D0 
-000010AE  5249                      99      ADDA.W  #1,A1          *increment pointer
-000010B0  60CE                     100      BRA     STRING_HEX_01   
-000010B2                           101      
-000010B2                           102      
-000010B2                           103  *HEX TO STRING
-000010B2                           104  *_____________
-000010B2                           105  HEX_STRING:
-000010B2  4E71                     106      NOP
-000010B4  4E75                     107      RTS
-000010B6                           108      
-000010B6                           109      
-000010B6                           110  *NOP SUBROUTINE
-000010B6                           111  *______________
-000010B6                           112  SR_NOP:
-000010B6  4E71                     113      NOP *DO STUFF HERE
-000010B8  4E75                     114      RTS   
-000010BA                           115      
-000010BA                           116      
-000010BA                           117  *EXIT
-000010BA                           118  *____
-000010BA                           119  EXIT:
-000010BA  4E71                     120      NOP *REPLACE WITH EOF OUTPUT
-000010BC                           121      
-000010BC                           122      
-000010BC                           123  *CONSTANTS AND PARAMETERS
-000010BC                           124  *________________________
-000010BC  =0000000D                125  CR       EQU    $0D
-000010BC  =0000000A                126  LF       EQU    $0A
-000010BC= 45 6E 74 65 72 20 ...    127  M_INPSTARTRANGE   DC.B    'Enter Start Range of Memory',CR,LF,0
-000010DA= 45 6E 74 65 72 20 ...    128  M_INPENDRANGE     DC.B    'Enter End Range of Memory',CR,LF,0
-000010F6= 49 6E 70 75 74 20 ...    129  M_INPINVALID      DC.B    'Input is invalid, try again',CR,LF,0
-00000500                           130      ORG $500
-00000500= 00000008                 131      DC.L 8
-00000520                           132      ORG $520
-00000520= 00000008                 133      DC.L 8
-00000524                           134      END    START
+00000000  =00000540                  3  STRHEXOUT   EQU $540
+00000000  =00000580                  4  BUFF        EQU $580
+00001000                             5      ORG    $1000
+00001000                             6  START:                
+00001000                             7  
+00001000                             8  * MAIN PROGRAM LOOP
+00001000                             9  * NOTES:
+00001000                            10  *   WARNING: A5, A6, and D7 MUST not be overwritten by subroutines. They are system reserved currently.
+00001000                            11  *__________________    
+00001000                            12  MAIN:
+00001000  4BF8 0500                 13      LEA INPSTART,A5
+00001004  4DF8 0520                 14      LEA INPEND,A6
+00001008  45F8 0500                 15      LEA INPSTART,A2
+0000100C  1E3C 001E                 16      MOVE.B  #30,D7
+00001010                            17  MAINBADRANGE:
+00001010  43F9 00001642             18      LEA M_INPSTARTRANGE,A1
+00001016  4EB9 00001350             19      JSR USRINPUT
+0000101C  43F9 00001660             20      LEA M_INPENDRANGE,A1
+00001022  45F8 0520                 21      LEA INPEND,A2
+00001026  4EB9 00001350             22      JSR USRINPUT
+0000102C  2A55                      23      MOVEA.L (A5),A5
+0000102E  2C56                      24      MOVEA.L (A6),A6
+00001030  BBCE                      25      CMP.L A6,A5
+00001032  6CDC                      26      BGE MAINBADRANGE
+00001034                            27      
+00001034                            28  MAINLOOP:
+00001034  BE3C 0000                 29      CMP.B   #0,D7
+00001038  6700 001C                 30      BEQ     MAINLOOP_HOLD
+0000103C  BDCD                      31      CMP.L   A5,A6       *Check for End of Range
+0000103E  6D00 05EE                 32      BLT     EXIT        *Branch to Exit
+00001042  3C15                      33      MOVE.W  (A5),D6       * Get and move instruction and increment
+00001044                            34      
+00001044                            35                     
+00001044  CC7C F000                 36      AND.W   #$F000,D6   *AND to get the first 4 bits
+00001048  780A                      37      MOVE.L  #10,D4
+0000104A  E8AE                      38      LSR.L   D4,D6
+0000104C  2046                      39      MOVE.L  D6,A0
+0000104E                            40  
+0000104E  2068 107E                 41      MOVE.L  table(A0),A0    *load address of jump point from table using OPCODE
+00001052  5307                      42      SUBI.B  #1,D7
+00001054  4ED0                      43      JMP     (A0)   *jump to corresponding section
+00001056                            44                      
+00001056                            45  MAINLOOP_HOLD:
+00001056  103C 000E                 46      MOVE.B  #14,D0      *output enter message
+0000105A  43F9 0000169A             47      LEA     M_HOLD,A1
+00001060  4E4F                      48      TRAP    #15
+00001062                            49  ENTER_HOLD:
+00001062  103C 0005                 50      MOVE.B  #5,D0       *Wait for user to press enter
+00001066  4E4F                      51      TRAP    #15
+00001068                            52      
+00001068  B23C 000D                 53      CMP.B   #$D,D1
+0000106C  66F4                      54      BNE     ENTER_HOLD
+0000106E                            55      
+0000106E  323C FF00                 56      MOVE.W  #$FF00,D1   *Clear Terminal
+00001072  103C 000B                 57      MOVE.B  #11,D0
+00001076  4E4F                      58      TRAP    #15
+00001078                            59      
+00001078  1E3C 001E                 60      MOVE.B  #30,D7      *Reset Counter
+0000107C  60B6                      61      BRA MAINLOOP
+0000107E                            62      
+0000107E                            63  
+0000107E                            64  *----------------------------------------------------------
+0000107E                            65  *Table that will use the 4 bits to jump to the correct instruction
+0000107E                            66  *-----------------------------------------------------------
+0000107E= 000010BE                  67  table       dc.l    value0000
+00001082= 00001102                  68              dc.l    value0001
+00001086= 0000110C                  69              dc.l    value0010
+0000108A= 00001116                  70              dc.l    value0011
+0000108E= 00001120                  71              dc.l    value0100
+00001092= 0000118C                  72              dc.l    value0101
+00001096= 0000119E                  73              dc.l    value0110
+0000109A= 00001206                  74              dc.l    value0111
+0000109E= 00001210                  75              dc.l    value1000
+000010A2= 00001242                  76              dc.l    value1001
+000010A6= 00001254                  77              dc.l    value1010
+000010AA= 0000125E                  78              dc.l    value1011
+000010AE= 00001290                  79              dc.l    value1100
+000010B2= 0000129A                  80              dc.l    value1101
+000010B6= 000012CC                  81              dc.l    value1110
+000010BA= 00001346                  82              dc.l    value1111
+000010BE                            83              
+000010BE                            84              
+000010BE  0C55 0000                 85  value0000   CMP.W #$0000,(A5)      *Check for CMPI OPWORD. CHANGE HEX!
+000010C2  6600 000C                 86              BNE N_CMPI
+000010C6  4EB9 00001478             87              JSR SR_CMPI
+000010CC  6000 FF66                 88              BRA MAINLOOP
+000010D0                            89              
+000010D0                            90  N_CMPI:    
+000010D0  0C55 0000                 91              CMP.W #$0000,(A5)      *Check for ORI OPWORD. CHANGE HEX!
+000010D4  6600 000C                 92              BNE N_ORI
+000010D8  4EB9 00001544             93              JSR SR_ORI
+000010DE  6000 FF54                 94              BRA MAINLOOP
+000010E2                            95              
+000010E2                            96  N_ORI:      
+000010E2  0C55 0000                 97              CMP.W #$0000,(A5)      *Check for BCLR OPWORD. CHANGE HEX!
+000010E6  6600 000C                 98              BNE N_BCLR
+000010EA  4EB9 00001574             99              JSR SR_BCLR
+000010F0  6000 FF42                100              BRA MAINLOOP 
+000010F4                           101  
+000010F4                           102  N_BCLR:      
+000010F4                           103              *CMP.W #$0000,(A5)     *not sure where to branch with last opword
+000010F4  6600 04B2                104              BNE SR_DATA          
+000010F8  4EB9 00001574            105              JSR SR_BCLR
+000010FE  6000 FF34                106              BRA MAINLOOP
+00001102                           107           
+00001102                           108  value0001
+00001102  4EB9 000015A8            109              JSR SR_DATA
+00001108  6000 FF2A                110              BRA MAINLOOP
+0000110C                           111              
+0000110C                           112  value0010
+0000110C  4EB9 000015A8            113              JSR SR_DATA
+00001112  6000 FF20                114              BRA MAINLOOP
+00001116                           115              
+00001116                           116  value0011
+00001116  4EB9 000015A8            117              JSR SR_DATA
+0000111C  6000 FF16                118              BRA MAINLOOP
+00001120                           119              
+00001120  0C55 4E71                120  value0100   CMP.W #$4E71,(A5)   *Check for NOP OPWORD
+00001124  6600 000C                121              BNE N_NOP
+00001128  4EB9 00001430            122              JSR SR_NOP
+0000112E  6000 FF04                123              BRA MAINLOOP
+00001132                           124              
+00001132                           125  N_NOP:
+00001132  0C55 4E75                126              CMP.W #$4E75,(A5)   *Check for RTS OPWORD
+00001136  6600 000C                127              BNE N_RTS
+0000113A  4EB9 00001580            128              JSR SR_RTS
+00001140  6000 FEF2                129              BRA MAINLOOP
+00001144                           130              
+00001144                           131  N_RTS:
+00001144  B381                     132              EOR.L D1,D1
+00001146  3215                     133              MOVE.W (A5),D1
+00001148  C27C FF00                134              AND.W #$FF00,D1
+0000114C  B27C 4400                135              CMP.W #$4400,D1     *Check for NEG OPWORD
+00001150  6600 000C                136              BNE N_NEG
+00001154  4EB9 00001488            137              JSR SR_NEG
+0000115A  6000 FED8                138              BRA MAINLOOP
+0000115E                           139              
+0000115E                           140  N_NEG:
+0000115E  0C55 0000                141              CMP.W #$0000,(A5)   *Check for LEA OPWORD. CHANGE HEX!
+00001162  6600 000C                142              BNE N_LEA
+00001166  4EB9 00001484            143              JSR SR_LEA
+0000116C  6000 FEC6                144              BRA MAINLOOP
+00001170                           145                         
+00001170                           146  N_LEA:      
+00001170  0C55 0000                147              CMP.W #$0000,(A5)   *Check for JSR OPWORD. CHANGE HEX!
+00001174  6600 000C                148              BNE N_JSR
+00001178  4EB9 0000157C            149              JSR SR_JSR
+0000117E  6000 FEB4                150              BRA MAINLOOP
+00001182                           151                       
+00001182                           152  N_JSR:      
+00001182  4EB9 0000157C            153              JSR SR_JSR           *wasnt sure where to branch now
+00001188  6000 FEAA                154              BRA MAINLOOP           
+0000118C                           155                          
+0000118C                           156              
+0000118C  0C55 0000                157  value0101   CMP.W #$0000,(A5)    *Check for SUBQ OPWORD. CHANGE HEX!
+00001190  6600 0416                158              BNE SR_DATA          *Not sure where to branch (SUBQ alone in 0101)
+00001194  4EB9 00001470            159              JSR SR_SUBQ
+0000119A  6000 FE98                160              BRA MAINLOOP
+0000119E                           161              
+0000119E  0C55 0000                162  value0110   CMP.W #$0000,(A5)    *Check for BCS OPWORD. CHANGE HEX!
+000011A2  6600 000C                163              BNE N_BCS
+000011A6  4EB9 00001564            164              JSR SR_BCS
+000011AC  6000 FE86                165              BRA MAINLOOP
+000011B0                           166              
+000011B0                           167  N_BCS: 
+000011B0  0C55 0000                168              CMP.W #$0000,(A5)      *Check for BGE OPWORD. CHANGE HEX!
+000011B4  6600 000C                169              BNE N_BGE
+000011B8  4EB9 00001568            170              JSR SR_BGE
+000011BE  6000 FE74                171              BRA MAINLOOP    
+000011C2                           172  
+000011C2                           173  N_BGE:
+000011C2  0C55 0000                174              CMP.W #$0000,(A5)      *Check for BLT OPWORD. CHANGE HEX!
+000011C6  6600 000C                175              BNE N_BLT
+000011CA  4EB9 0000156C            176              JSR SR_BLT
+000011D0  6000 FE62                177              BRA MAINLOOP    
+000011D4                           178  
+000011D4                           179  N_BLT:
+000011D4  0C55 0000                180              CMP.W #$0000,(A5)      *Check for BVC OPWORD. CHANGE HEX!
+000011D8  6600 000C                181              BNE N_BVC
+000011DC  4EB9 00001570            182              JSR SR_BVC
+000011E2  6000 FE50                183              BRA MAINLOOP   
+000011E6                           184  
+000011E6                           185  N_BVC:
+000011E6  0C55 0000                186              CMP.W #$0000,(A5)      *Check for BRA OPWORD. CHANGE HEX!
+000011EA  6600 000C                187              BNE N_BRA
+000011EE  4EB9 00001578            188              JSR SR_BRA
+000011F4  6000 FE3E                189              BRA MAINLOOP 
+000011F8                           190  
+000011F8                           191  N_BRA:      
+000011F8                           192              *CMP.W #$0000,(A5)    
+000011F8  6600 03AE                193              BNE SR_DATA            *not sure where to branch with last opword
+000011FC  4EB9 00001578            194              JSR SR_BRA
+00001202  6000 FE30                195              BRA MAINLOOP          
+00001206                           196              
+00001206                           197              
+00001206                           198  value0111
+00001206  4EB9 000015A8            199              JSR SR_DATA
+0000120C  6000 FE26                200              BRA MAINLOOP
+00001210                           201              
+00001210  0C55 0000                202  value1000   CMP.W #$0000,(A5)      *Check for DIVS OPWORD. CHANGE HEX!
+00001214  6600 000C                203              BNE N_DIVS
+00001218  4EB9 00001480            204              JSR SR_DIVS
+0000121E  6000 FE14                205              BRA MAINLOOP
+00001222                           206              
+00001222                           207  N_DIVS:
+00001222  0C55 0000                208              CMP.W #$0000,(A5)      *Check for OR OPWORD. CHANGE HEX!
+00001226  6600 000C                209              BNE N_OR
+0000122A  4EB9 00001540            210              JSR SR_OR
+00001230  6000 FE02                211              BRA MAINLOOP 
+00001234                           212              
+00001234                           213  N_OR:
+00001234                           214              *CMP.W #$0000,(A5)     
+00001234  6600 0372                215              BNE SR_DATA            *not sure where to branch with last opword
+00001238  4EB9 00001540            216              JSR SR_OR
+0000123E  6000 FDF4                217              BRA MAINLOOP  
+00001242                           218                   
+00001242                           219                        
+00001242  0C55 0000                220  value1001   CMP.W #$0000,(A5)      *Check for SUB OPWORD. CHANGE HEX!
+00001246  6600 0360                221              BNE SR_DATA            *Not sure where to branch (SUB alone in 0101)
+0000124A  4EB9 0000146C            222              JSR SR_SUB
+00001250  6000 FDE2                223              BRA MAINLOOP
+00001254                           224              
+00001254                           225  value1010
+00001254  4EB9 000015A8            226              JSR SR_DATA
+0000125A  6000 FDD8                227              BRA MAINLOOP
+0000125E                           228              
+0000125E  0C55 0000                229  value1011   CMP.W #$0000,(A5)      *Check for CMP OPWORD. CHANGE HEX!
+00001262  6600 000C                230              BNE N_CMP
+00001266  4EB9 00001474            231              JSR SR_CMP
+0000126C  6000 FDC6                232              BRA MAINLOOP
+00001270                           233  
+00001270                           234  N_CMP:
+00001270  0C55 0000                235              CMP.W #$0000,(A5)      *Check for EOR OPWORD. CHANGE HEX!
+00001274  6600 000C                236              BNE N_EOR
+00001278  4EB9 00001548            237              JSR SR_EOR
+0000127E  6000 FDB4                238              BRA MAINLOOP
+00001282                           239              
+00001282                           240  N_EOR:
+00001282                           241              *CMP.W #$0000,(A5)     
+00001282  6600 0324                242              BNE SR_DATA           *not sure where to branch with last opword
+00001286  4EB9 00001548            243              JSR SR_EOR
+0000128C  6000 FDA6                244              BRA MAINLOOP           
+00001290                           245                      
+00001290                           246  value1100
+00001290  4EB9 000015A8            247              JSR SR_DATA
+00001296  6000 FD9C                248              BRA MAINLOOP
+0000129A                           249              
+0000129A  0C55 0000                250  value1101   CMP.W #$0000,(A5)     *Check for ADD OPWORD. CHANGE HEX!
+0000129E  6600 000C                251              BNE N_ADD
+000012A2  4EB9 00001464            252              JSR SR_ADD
+000012A8  6000 FD8A                253              BRA MAINLOOP
+000012AC                           254  
+000012AC                           255  N_ADD:
+000012AC  0C55 0000                256              CMP.W #$0000,(A5)     *Check for ADDA OPWORD. CHANGE HEX!
+000012B0  6600 000C                257              BNE N_ADDA
+000012B4  4EB9 00001468            258              JSR SR_ADDA
+000012BA  6000 FD78                259              BRA MAINLOOP
+000012BE                           260              
+000012BE                           261  N_ADDA:
+000012BE                           262              *CMP.W #$0000,(A5)     
+000012BE  6600 02E8                263              BNE SR_DATA           *not sure where to branch with last opword
+000012C2  4EB9 00001468            264              JSR SR_ADDA
+000012C8  6000 FD6A                265              BRA MAINLOOP                
+000012CC                           266              
+000012CC                           267                         
+000012CC  0C55 0000                268  value1110   CMP.W #$0000,(A5)     *Check for LSL OPWORD. CHANGE HEX!
+000012D0  6600 000C                269              BNE N_LSL
+000012D4  4EB9 00001550            270              JSR SR_LSL
+000012DA  6000 FD58                271              BRA MAINLOOP
+000012DE                           272  
+000012DE                           273  N_LSL:
+000012DE  0C55 0000                274              CMP.W #$0000,(A5)    *Check for LSR OPWORD. CHANGE HEX!
+000012E2  6600 000C                275              BNE N_LSR
+000012E6  4EB9 0000154C            276              JSR SR_LSR
+000012EC  6000 FD46                277              BRA MAINLOOP
+000012F0                           278              
+000012F0                           279  N_LSR:
+000012F0  0C55 0000                280              CMP.W #$0000,(A5)    *Check for ASL OPWORD. CHANGE HEX!
+000012F4  6600 000C                281              BNE N_ASL
+000012F8  4EB9 00001558            282              JSR SR_ASL
+000012FE  6000 FD34                283              BRA MAINLOOP     
+00001302                           284  
+00001302                           285  N_ASL:
+00001302  0C55 0000                286              CMP.W #$0000,(A5)    *Check for ASR OPWORD. CHANGE HEX!
+00001306  6600 000C                287              BNE N_ASR
+0000130A  4EB9 00001554            288              JSR SR_ASR
+00001310  6000 FD22                289              BRA MAINLOOP  
+00001314                           290  
+00001314                           291  N_ASR:
+00001314  0C55 0000                292              CMP.W #$0000,(A5)     *Check for ROL OPWORD. CHANGE HEX!
+00001318  6600 000C                293              BNE N_ROL
+0000131C  4EB9 0000155C            294              JSR SR_ROL
+00001322  6000 FD10                295              BRA MAINLOOP   
+00001326                           296  
+00001326                           297  N_ROL:
+00001326  0C55 0000                298              CMP.W #$0000,(A5)     *Check for ROR OPWORD. CHANGE HEX!
+0000132A  6600 000C                299              BNE N_ROR
+0000132E  4EB9 00001560            300              JSR SR_ROR
+00001334  6000 FCFE                301              BRA MAINLOOP 
+00001338                           302              
+00001338                           303  N_ROR:
+00001338                           304              *CMP.W #$0000,(A5)     
+00001338  6600 026E                305              BNE SR_DATA          *not sure where to branch with last opword
+0000133C  4EB9 00001560            306              JSR SR_ROR
+00001342  6000 FCF0                307              BRA MAINLOOP              
+00001346                           308              
+00001346                           309  value1111
+00001346  4EB9 000015A8            310              JSR SR_DATA
+0000134C  6000 FCE6                311              BRA MAINLOOP
+00001350                           312  
+00001350                           313  * USER INPUT
+00001350                           314  * __________
+00001350                           315  USRINPUT:
+00001350  103C 000E                316      MOVE.B  #14,D0          *displays input message
+00001354  4E4F                     317      TRAP    #15
+00001356  6000 0012                318      BRA     INPSTR
+0000135A                           319      
+0000135A                           320  BADINPUT:
+0000135A  43F9 0000167C            321      LEA     M_INPINVALID, A1
+00001360  103C 000E                322      MOVE.B  #14,D0
+00001364  4E4F                     323      TRAP    #15
+00001366  6000 0002                324      BRA     INPSTR 
+0000136A                           325  
+0000136A                           326  INPSTR:
+0000136A  224A                     327      MOVEA.L A2,A1
+0000136C  103C 0002                328      MOVE.B  #2,D0
+00001370  4E4F                     329      TRAP    #15
+00001372                           330  
+00001372  0C11 0000                331      CMP.B   #$0,(A1)
+00001376  67E2                     332      BEQ     BADINPUT
+00001378  B23C 0006                333      CMP.B   #6,D1
+0000137C  6EDC                     334      BGT     BADINPUT
+0000137E  1401                     335      MOVE.B  D1,D2
+00001380                           336  INPSTR_01:
+00001380  B23C 0000                337      CMP.B   #0,D1
+00001384  6700 0014                338      BEQ     INPSTR_02
+00001388  0C11 0046                339      CMP.B   #$46,(A1)
+0000138C  6ECC                     340      BGT     BADINPUT
+0000138E  0C11 0030                341      CMP.B   #$30,(A1)
+00001392  6DC6                     342      BLT     BADINPUT
+00001394  5301                     343      SUBI.B  #1,D1
+00001396  5249                     344      ADDA.W  #1,A1
+00001398  60E6                     345      BRA     INPSTR_01
+0000139A                           346  INPSTR_02:    
+0000139A  224A                     347      MOVEA.L A2,A1
+0000139C  1202                     348      MOVE.B  D2,D1
+0000139E  4EB9 000013B0            349      JSR STRING_HEX
+000013A4  2811                     350      MOVE.L  (A1),D4
+000013A6  B8BC 00001000            351      CMP.L   #$1000,D4
+000013AC  6DAC                     352      BLT     BADINPUT
+000013AE  4E75                     353      RTS
+000013B0                           354      
+000013B0                           355      
+000013B0                           356  *STRING TO HEX
+000013B0                           357  *PRECONDITIONS:
+000013B0                           358  *   Memory location of string must be loaded into A1
+000013B0                           359  *   Length of string must be loaded into D1
+000013B0                           360  *REGISTERS USED:
+000013B0                           361  *   D0,D1,D2,D3,D4,A1,A2
+000013B0                           362  *POSTCONDITIONS:
+000013B0                           363  *   Hex equivalent of string is located at A1 with null character terminating in memory
+000013B0                           364  *NOTES:
+000013B0                           365  *   D0 Counts from 0 to string length
+000013B0                           366  *   D2 is the current working value converted from string
+000013B0                           367  *   D3 is the sum of all the working values
+000013B0                           368  *   D4 is the multiplier for the logical shift left on the current working value
+000013B0                           369  *   A2 Holds the starting address if A1
+000013B0                           370  *_____________
+000013B0                           371  STRING_HEX:
+000013B0  103C 0000                372      MOVE.B  #0,D0
+000013B4  7600                     373      MOVE.L  #0,D3
+000013B6  2449                     374      MOVEA.L A1,A2 
+000013B8                           375  STRING_HEX_01:
+000013B8  7400                     376      MOVE.L  #0,D2
+000013BA  B200                     377      CMP.B   D0,D1
+000013BC  6600 000E                378      BNE     STRING_HEX_02
+000013C0  224A                     379      MOVEA.L A2,A1
+000013C2  2483                     380      MOVE.L  D3,(A2)
+000013C4  584A                     381      ADDA.W  #4,A2
+000013C6  14BC 00FF                382      MOVE.B  #$FF,(A2)
+000013CA  4E75                     383      RTS
+000013CC                           384  STRING_HEX_02:
+000013CC  1411                     385      MOVE.B  (A1),D2
+000013CE  0402 0030                386      SUBI.B  #$30,D2     
+000013D2  B43C 0009                387      CMP.B   #$9,D2
+000013D6  6F00 0004                388      BLE     NSUB11
+000013DA  5F02                     389      SUBI.B  #$7,D2   
+000013DC                           390  NSUB11: 
+000013DC  E98B                     391      LSL.L   #4,D3
+000013DE  8682                     392      OR.L    D2,D3
+000013E0  5200                     393      ADDQ.B  #1,D0 
+000013E2  5249                     394      ADDA.W  #1,A1          *increment pointer
+000013E4  60D2                     395      BRA     STRING_HEX_01   
+000013E6                           396      
+000013E6                           397      
+000013E6                           398  *HEX TO STRING LONG
+000013E6                           399  *PRECONDITIONS:
+000013E6                           400  *   Long Hex Address to be converted located in D1
+000013E6                           401  *REGISTERS USED:
+000013E6                           402  *   D1,D2,D3,D4,D5,A1,A2
+000013E6                           403  *POSTCONDITIONS:
+000013E6                           404  *   String conversion of Long Address Located at memory location $540
+000013E6                           405  *NOTES:
+000013E6                           406  *   CLEARS Two long lengths worth of memory at $540
+000013E6                           407  *   Converts a Long Hex Address into a string for display
+000013E6                           408  *_____________
+000013E6                           409  HEX_STRING_L:
+000013E6  48E7 FFFE                410      MOVEM.L D0-A6,-(sp)
+000013EA  2439 0000163E            411      MOVE.L  LONGNIBBLEMASK,D2
+000013F0  183C 0008                412      MOVE.B  #8,D4
+000013F4  45F8 0540                413      LEA     STRHEXOUT,A2
+000013F8                           414      
+000013F8                           415  HEX_STRING_L_01:
+000013F8  2602                     416      MOVE.L  D2,D3 *Make a copy of the mask
+000013FA  C681                     417      AND.L   D1,D3 *And the address with the copy of the mask, overwriting the mask
+000013FC  2A04                     418      MOVE.L  D4,D5
+000013FE  5385                     419      SUBI.L  #1,D5
+00001400  CBFC 0004                420      MULS.W  #4,D5
+00001404  EAAB                     421      LSR.L   D5,D3 *Shift the resultant value to the LSB
+00001406  B63C 0009                422      CMP.B   #$9,D3
+0000140A  6F00 0004                423      BLE     HEX_STRING_L_03
+0000140E  5E03                     424      ADDI.B  #$7,D3
+00001410                           425  HEX_STRING_L_03:
+00001410  0603 0030                426      ADDI.B  #$30,D3
+00001414  1483                     427      MOVE.B  D3,(A2)
+00001416  E89A                     428      ROR.L   #4,D2 *Rotate the original mask
+00001418  5304                     429      SUBI.B  #1,D4 *Move the counter
+0000141A  524A                     430      ADDA.W  #1,A2 *Move the address pointer
+0000141C  B83C 0000                431      CMP.B   #0,D4
+00001420  6600 000C                432      BNE     HEX_STRING_L_02
+00001424  14BC 0000                433      MOVE.B  #$0,(A2)
+00001428  4CDF 7FFF                434      MOVEM.L (sp)+,D0-A6
+0000142C  4E75                     435      RTS
+0000142E                           436  HEX_STRING_L_02:
+0000142E  60C8                     437      BRA     HEX_STRING_L_01
+00001430                           438  
+00001430                           439  
+00001430                           440  *NOP SUBROUTINE
+00001430                           441  *______________
+00001430                           442  SR_NOP:
+00001430                           443      *READ OP WORD AND CONFIRM VALIDITY (Otherwise JSR to DATA and then RTS here.)
+00001430                           444          *Reading OPWORD is pointless here, so it is skipped
+00001430                           445          *As this must be exactly NOP to get here, no validation is necessary.
+00001430                           446      
+00001430                           447      *OUTPUT MEMORY ADDRESS AND OPERATION NAME
+00001430  220D                     448      MOVE.L  A5,D1
+00001432  4EB8 13E6                449      JSR     HEX_STRING_L
+00001436  43F8 0540                450      LEA     STRHEXOUT,A1
+0000143A  103C 000E                451      MOVE.B  #14,D0 *TRAP TASK 14, Output A1 with no Carriage Return of Line Feed
+0000143E  4E4F                     452      TRAP    #15
+00001440  22BC 094E4F50            453      MOVE.L  #$094E4F50,(A1)
+00001446  2449                     454      MOVEA.L A1,A2
+00001448  584A                     455      ADDA.W  #4,A2
+0000144A  14BC 0000                456      MOVE.B  #$0,(A2)
+0000144E  103C 000D                457      MOVE.B  #13,D0
+00001452  4E4F                     458      TRAP    #15
+00001454                           459      
+00001454                           460      *BRANCH FOR <EA> MODE AND OUTPUT ARGUMENTS
+00001454                           461          *No branching is necessary as there are no arguments for NOP
+00001454                           462      
+00001454                           463      *MOVE ADDRESS POINTER TO NEXT OPWORD
+00001454  544D                     464      ADDA.W  #2,A5
+00001456                           465      
+00001456                           466      *RTS
+00001456  4E75                     467      RTS   
+00001458                           468   
+00001458                           469   
+00001458                           470  *MOVE SUBROUTINE
+00001458                           471  *______________
+00001458                           472  SR_MOVE:
+00001458  4E71                     473      NOP *DO STUFF HERE
+0000145A  4E75                     474      RTS      
+0000145C                           475   
+0000145C                           476   
+0000145C                           477  *MOVEA SUBROUTINE
+0000145C                           478  *______________
+0000145C                           479  SR_MOVEA:
+0000145C  4E71                     480      NOP *DO STUFF HERE
+0000145E  4E75                     481      RTS      
+00001460                           482   
+00001460                           483   
+00001460                           484  *MOVEM SUBROUTINE
+00001460                           485  *______________
+00001460                           486  SR_MOVEM:
+00001460  4E71                     487      NOP *DO STUFF HERE
+00001462  4E75                     488      RTS      
+00001464                           489   
+00001464                           490    
+00001464                           491  *ADD SUBROUTINE
+00001464                           492  *______________
+00001464                           493  SR_ADD:
+00001464  4E71                     494      NOP *DO STUFF HERE
+00001466  4E75                     495      RTS 
+00001468                           496     
+00001468                           497     
+00001468                           498  *ADDA SUBROUTINE
+00001468                           499  *______________
+00001468                           500  SR_ADDA:
+00001468  4E71                     501      NOP *DO STUFF HERE
+0000146A  4E75                     502      RTS   
+0000146C                           503      
+0000146C                           504      
+0000146C                           505  *SUB SUBROUTINE
+0000146C                           506  *______________
+0000146C                           507  SR_SUB:
+0000146C  4E71                     508      NOP *DO STUFF HERE
+0000146E  4E75                     509      RTS  
+00001470                           510  
+00001470                           511  
+00001470                           512  *SUBQ SUBROUTINE
+00001470                           513  *______________
+00001470                           514  SR_SUBQ:
+00001470  4E71                     515      NOP *DO STUFF HERE
+00001472  4E75                     516      RTS  
+00001474                           517  
+00001474                           518  
+00001474                           519  *CMP SUBROUTINE
+00001474                           520  *______________
+00001474                           521  SR_CMP:
+00001474  4E71                     522      NOP *DO STUFF HERE
+00001476  4E75                     523      RTS  
+00001478                           524   
+00001478                           525   
+00001478                           526  *CMPI SUBROUTINE
+00001478                           527  *______________
+00001478                           528  SR_CMPI:
+00001478  4E71                     529      NOP *DO STUFF HERE
+0000147A  4E75                     530      RTS    
+0000147C                           531  
+0000147C                           532  
+0000147C                           533  *MULS SUBROUTINE
+0000147C                           534  *______________
+0000147C                           535  SR_MULS:
+0000147C  4E71                     536      NOP *DO STUFF HERE
+0000147E  4E75                     537      RTS    
+00001480                           538  
+00001480                           539  
+00001480                           540  *DIVS SUBROUTINE
+00001480                           541  *______________
+00001480                           542  SR_DIVS:
+00001480  4E71                     543      NOP *DO STUFF HERE
+00001482  4E75                     544      RTS  
+00001484                           545  
+00001484                           546  
+00001484                           547  *LEA SUBROUTINE
+00001484                           548  *______________
+00001484                           549  SR_LEA:
+00001484  4E71                     550      NOP *DO STUFF HERE
+00001486  4E75                     551      RTS
+00001488                           552  
+00001488                           553  
+00001488                           554  *NEG SUBROUTINE
+00001488                           555  *______________
+00001488                           556  SR_NEG:
+00001488                           557      *DEFINE RELEVANT LISTS
+00001488= 000015E8 0000160C ...    558  NEG_SIZE    DC.L    SIZE_BYTE,SIZE_WORD,SIZE_LONG,SR_DATA
+00001498= 0000161E 000015A8 ...    559  NEG_EA      DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_LONG,EA_ABS_SHORT,SR_DATA,SR_DATA,SR_DATA
+000014C8                           560      *READ OP WORD AND CONFIRM VALIDITY (Otherwise JMP to DATA and then RTS to main.)
+000014C8  244D                     561      MOVEA.L A5,A2
+000014CA  524A                     562      ADDA.W  #1,A2
+000014CC  B582                     563      EOR.L   D2,D2
+000014CE  1412                     564      MOVE.B  (A2),D2 *Size Code
+000014D0  0202 00C0                565      ANDI.B  #$C0,D2
+000014D4  E80A                     566      LSR.B   #4,D2
+000014D6  47F9 000015A8            567      LEA     SR_DATA,A3
+000014DC  B7FB 20AA                568      CMPA.L  NEG_SIZE(PC,D2),A3
+000014E0  6700 00C6                569      BEQ     SR_DATA
+000014E4                           570      
+000014E4  B783                     571      EOR.L   D3,D3
+000014E6  B984                     572      EOR.L   D4,D4
+000014E8  1612                     573      MOVE.B  (A2),D3 *Move OPWORD to D3
+000014EA  1803                     574      MOVE.B  D3,D4   *MOVE OPWORD to D4
+000014EC  0203 0038                575      ANDI.B  #$38,D3 *Bitmask EA Mode
+000014F0  0204 0007                576      ANDI.B  #$07,D4 *Bitmask EA Register
+000014F4  E20B                     577      LSR.B   #1,D3
+000014F6                           578      
+000014F6  B63C 001C                579      CMP.B   #$1C,D3
+000014FA  6600 0010                580      BNE     SR_NEG_NOT_111
+000014FE                           581      *MOVE.B  D4,D5
+000014FE                           582      *LSL.B   #2,D5
+000014FE  D604                     583      ADD.B   D4,D3
+00001500  B7FB 3096                584      CMPA.L  NEG_EA(PC,D3),A3
+00001504  6700 00A2                585      BEQ     SR_DATA
+00001508  6000 000A                586      BRA     SR_NEG_OUT
+0000150C                           587  SR_NEG_NOT_111:
+0000150C  B7FB 308A                588      CMPA.L  NEG_EA(PC,D3),A3
+00001510  6700 0096                589      BEQ     SR_DATA
+00001514                           590  SR_NEG_OUT:
+00001514                           591      
+00001514                           592      
+00001514                           593      *OUTPUT MEMORY ADDRESS AND OPERATION NAME
+00001514  220D                     594      MOVE.L  A5,D1
+00001516  4EB8 13E6                595      JSR     HEX_STRING_L
+0000151A  43F8 0540                596      LEA     STRHEXOUT,A1
+0000151E  103C 000E                597      MOVE.B  #14,D0 *TRAP TASK 14, Output A1 with no Carriage Return or Line Feed
+00001522  4E4F                     598      TRAP    #15
+00001524  22BC 094E4547            599      MOVE.L  #$094E4547,(A1)
+0000152A  2449                     600      MOVEA.L A1,A2
+0000152C  584A                     601      ADDA.W  #4,A2
+0000152E  14BC 0000                602      MOVE.B  #$0,(A2)
+00001532                           603      *MOVE.B  #13,D0
+00001532  4E4F                     604      TRAP    #15
+00001534  2842                     605      MOVE.L  D2,A4
+00001536  286C 1488                606      MOVEA.L NEG_SIZE(A4),A4
+0000153A  4E94                     607      JSR     (A4)
+0000153C                           608      
+0000153C                           609      *BRANCH FOR <EA> MODE AND OUTPUT ARGUMENTS
+0000153C                           610          *No branching is necessary as there are no arguments for NOP
+0000153C                           611      
+0000153C                           612      *MOVE ADDRESS POINTER TO NEXT OPWORD
+0000153C  544D                     613      ADDA.W  #2,A5
+0000153E                           614      
+0000153E                           615      *RTS
+0000153E  4E75                     616      RTS  
+00001540                           617      
+00001540                           618      
+00001540                           619  *OR SUBROUTINE
+00001540                           620  *______________
+00001540                           621  SR_OR:
+00001540  4E71                     622      NOP *DO STUFF HERE
+00001542  4E75                     623      RTS  
+00001544                           624  
+00001544                           625  *ORI SUBROUTINE
+00001544                           626  *______________
+00001544                           627  SR_ORI:
+00001544  4E71                     628      NOP *DO STUFF HERE
+00001546  4E75                     629      RTS 
+00001548                           630      
+00001548                           631   
+00001548                           632  *EOR SUBROUTINE
+00001548                           633  *______________
+00001548                           634  SR_EOR:
+00001548  4E71                     635      NOP *DO STUFF HERE
+0000154A  4E75                     636      RTS 
+0000154C                           637  
+0000154C                           638    
+0000154C                           639  *LSR SUBROUTINE
+0000154C                           640  *______________
+0000154C                           641  SR_LSR:
+0000154C  4E71                     642      NOP *DO STUFF HERE
+0000154E  4E75                     643      RTS     
+00001550                           644  
+00001550                           645  *LSL SUBROUTINE
+00001550                           646  *______________
+00001550                           647  SR_LSL:
+00001550  4E71                     648      NOP *DO STUFF HERE
+00001552  4E75                     649      RTS 
+00001554                           650  
+00001554                           651  
+00001554                           652  *ASR SUBROUTINE
+00001554                           653  *______________
+00001554                           654  SR_ASR:
+00001554  4E71                     655      NOP *DO STUFF HERE
+00001556  4E75                     656      RTS 
+00001558                           657      
+00001558                           658  
+00001558                           659  *ASL SUBROUTINE
+00001558                           660  *______________
+00001558                           661  SR_ASL:
+00001558  4E71                     662      NOP *DO STUFF HERE
+0000155A  4E75                     663      RTS 
+0000155C                           664  
+0000155C                           665  
+0000155C                           666  *ROL SUBROUTINE
+0000155C                           667  *______________
+0000155C                           668  SR_ROL:
+0000155C  4E71                     669      NOP *DO STUFF HERE
+0000155E  4E75                     670      RTS     
+00001560                           671      
+00001560                           672      
+00001560                           673  *ROR SUBROUTINE
+00001560                           674  *______________
+00001560                           675  SR_ROR:
+00001560  4E71                     676      NOP *DO STUFF HERE
+00001562  4E75                     677      RTS 
+00001564                           678    
+00001564                           679    
+00001564                           680  *BCS SUBROUTINE
+00001564                           681  *______________
+00001564                           682  SR_BCS:
+00001564  4E71                     683      NOP *DO STUFF HERE
+00001566  4E75                     684      RTS 
+00001568                           685      
+00001568                           686  
+00001568                           687  *BGE SUBROUTINE
+00001568                           688  *______________
+00001568                           689  SR_BGE:
+00001568  4E71                     690      NOP *DO STUFF HERE
+0000156A  4E75                     691      RTS     
+0000156C                           692      
+0000156C                           693      
+0000156C                           694  *BLT SUBROUTINE
+0000156C                           695  *______________
+0000156C                           696  SR_BLT:
+0000156C  4E71                     697      NOP *DO STUFF HERE
+0000156E  4E75                     698      RTS     
+00001570                           699      
+00001570                           700      
+00001570                           701  *BVC SUBROUTINE
+00001570                           702  *______________
+00001570                           703  SR_BVC:
+00001570  4E71                     704      NOP *DO STUFF HERE
+00001572  4E75                     705      RTS 
+00001574                           706    
+00001574                           707    
+00001574                           708  *BCLR SUBROUTINE
+00001574                           709  *______________
+00001574                           710  SR_BCLR:
+00001574  4E71                     711      NOP *DO STUFF HERE
+00001576  4E75                     712      RTS     
+00001578                           713      
+00001578                           714      
+00001578                           715  *BRA SUBROUTINE
+00001578                           716  *______________
+00001578                           717  SR_BRA:
+00001578  4E71                     718      NOP *DO STUFF HERE
+0000157A  4E75                     719      RTS    
+0000157C                           720      
+0000157C                           721      
+0000157C                           722  *JSR SUBROUTINE
+0000157C                           723  *______________
+0000157C                           724  SR_JSR:
+0000157C  4E71                     725      NOP *DO STUFF HERE
+0000157E  4E75                     726      RTS 
+00001580                           727      
+00001580                           728      
+00001580                           729  *RTS SUBROUTINE
+00001580                           730  *______________
+00001580                           731  SR_RTS:
+00001580                           732      *READ OP WORD AND CONFIRM VALIDITY (Otherwise JSR to DATA and then RTS here.)
+00001580                           733          *Reading OPWORD is pointless here, so it is skipped
+00001580                           734          *As this must be exactly NOP to get here, no validation is necessary.
+00001580                           735      
+00001580                           736      *OUTPUT MEMORY ADDRESS AND OPERATION NAME
+00001580  220D                     737      MOVE.L  A5,D1
+00001582  4EB8 13E6                738      JSR     HEX_STRING_L
+00001586  43F8 0540                739      LEA     STRHEXOUT,A1
+0000158A  103C 000E                740      MOVE.B  #14,D0 *TRAP TASK 14, Output A1 with no Carriage Return of Line Feed
+0000158E  4E4F                     741      TRAP    #15
+00001590                           742      *MOVE.L  #$094E4F50,(A1)
+00001590  22BC 09525453            743      MOVE.L  #$09525453,(A1)
+00001596  2449                     744      MOVEA.L A1,A2
+00001598  584A                     745      ADDA.W  #4,A2
+0000159A  14BC 0000                746      MOVE.B  #$0,(A2)
+0000159E  103C 000D                747      MOVE.B  #13,D0
+000015A2  4E4F                     748      TRAP    #15
+000015A4                           749      
+000015A4                           750      *BRANCH FOR <EA> MODE AND OUTPUT ARGUMENTS
+000015A4                           751          *No branching is necessary as there are no arguments for NOP
+000015A4                           752      
+000015A4                           753      *MOVE ADDRESS POINTER TO NEXT OPWORD
+000015A4  544D                     754      ADDA.W  #2,A5
+000015A6                           755      
+000015A6                           756      *RTS
+000015A6  4E75                     757      RTS       
+000015A8                           758  
+000015A8                           759  
+000015A8                           760  *DATA SUBROUTINE
+000015A8                           761  *_______________ 
+000015A8                           762  SR_DATA:  
+000015A8                           763      *READ OP WORD AND CONFIRM VALIDITY (Otherwise JSR to DATA and then RTS here.)
+000015A8                           764          *Reading OPWORD is pointless here, so it is skipped
+000015A8                           765          *DATA requires no validation as it is, well Data.
+000015A8                           766      
+000015A8                           767      *OUTPUT MEMORY ADDRESS AND OPERATION NAME
+000015A8  220D                     768      MOVE.L  A5,D1
+000015AA  4EB8 13E6                769      JSR     HEX_STRING_L
+000015AE  43F8 0540                770      LEA     STRHEXOUT,A1
+000015B2  103C 000E                771      MOVE.B  #14,D0
+000015B6  4E4F                     772      TRAP    #15             *Output Address
+000015B8  22BC 09444154            773      MOVE.L  #$09444154,(A1)
+000015BE  2449                     774      MOVEA.L A1,A2
+000015C0  584A                     775      ADDA.W  #4,A2
+000015C2  24BC 41090000            776      MOVE.L  #$41090000,(A2)
+000015C8  4E4F                     777      TRAP    #15             *Output Operation name
+000015CA                           778      
+000015CA                           779      
+000015CA                           780      
+000015CA                           781      *BRANCH FOR <EA> MODE AND OUTPUT ARGUMENTS
+000015CA                           782          *No EA for DATA, thus no branching here
+000015CA  3215                     783      MOVE.W  (A5),D1
+000015CC  4841                     784      SWAP    D1
+000015CE  4EB8 13E6                785      JSR     HEX_STRING_L
+000015D2  43F8 0540                786      LEA     STRHEXOUT,A1
+000015D6  2449                     787      MOVEA.L A1,A2
+000015D8  584A                     788      ADDA.W  #4,A2
+000015DA  14BC 0000                789      MOVE.B  #$0,(A2)
+000015DE  103C 000D                790      MOVE.B  #13,D0
+000015E2  4E4F                     791      TRAP    #15             *Output Invalid Data found at current working word to terminal
+000015E4                           792      *MOVE ADDRESS POINTER TO NEXT OPWORD
+000015E4  544D                     793      ADDA.W  #2,A5
+000015E6                           794      
+000015E6                           795      *RTS
+000015E6  4E75                     796      RTS 
+000015E8                           797  
+000015E8                           798  
+000015E8                           799  size_byte:
+000015E8  43F8 0540                800              LEA STRHEXOUT,A1
+000015EC  22BC 2E420900            801              MOVE.L  #$2E420900,(A1)
+000015F2  103C 000E                802              MOVE.B  #14,D0
+000015F6  4E4F                     803              TRAP    #15
+000015F8  4E75                     804              RTS
+000015FA                           805  size_long:
+000015FA  43F8 0540                806              LEA STRHEXOUT,A1
+000015FE  22BC 2E4C0900            807              MOVE.L  #$2E4C0900,(A1)
+00001604  103C 000E                808              MOVE.B  #14,D0
+00001608  4E4F                     809              TRAP    #15
+0000160A  4E75                     810              RTS
+0000160C                           811  size_word:
+0000160C  43F8 0540                812              LEA STRHEXOUT,A1
+00001610  22BC 2E570900            813              MOVE.L  #$2E570900,(A1) 
+00001616  103C 000E                814              MOVE.B  #14,D0
+0000161A  4E4F                     815              TRAP    #15
+0000161C  4E75                     816              RTS
+0000161E                           817  
+0000161E                           818  
+0000161E                           819  EA_DATA:
+0000161E  4E75                     820      RTS
+00001620                           821  EA_ADDR:
+00001620  4E75                     822      RTS
+00001622                           823  EA_ADDRIND:
+00001622  4E75                     824      RTS
+00001624                           825  EA_ADDRIND_PINC:
+00001624  4E75                     826      RTS
+00001626                           827  EA_ADDRIND_PDEC:
+00001626  4E75                     828      RTS
+00001628                           829  EA_ABS_LONG:
+00001628  4E75                     830      RTS
+0000162A                           831  EA_ABS_SHORT:
+0000162A  4E75                     832      RTS
+0000162C                           833  EA_IMM:
+0000162C  4E75                     834      RTS
+0000162E                           835              
+0000162E                           836  
+0000162E                           837     
+0000162E                           838  *EXIT
+0000162E                           839  *____
+0000162E                           840  EXIT:
+0000162E  43F8 0540                841      LEA     STRHEXOUT,A1
+00001632  22BC 454F4600            842      MOVE.L  #$454F4600,(A1)
+00001638  103C 000E                843      MOVE.B  #14,D0
+0000163C  4E4F                     844      TRAP    #15
+0000163E                           845  
+0000163E                           846      
+0000163E                           847      
+0000163E                           848  *CONSTANTS AND PARAMETERS
+0000163E                           849  *________________________
+0000163E  =0000000D                850  CR       EQU    $0D
+0000163E  =0000000A                851  LF       EQU    $0A
+0000163E= F0000000                 852  LONGNIBBLEMASK      DC.L    $F0000000
+00001642= 45 6E 74 65 72 20 ...    853  M_INPSTARTRANGE     DC.B    'Enter Start Range of Memory',CR,LF,0
+00001660= 45 6E 74 65 72 20 ...    854  M_INPENDRANGE       DC.B    'Enter End Range of Memory',CR,LF,0
+0000167C= 49 6E 70 75 74 20 ...    855  M_INPINVALID        DC.B    'Input is invalid, try again',CR,LF,0
+0000169A= 50 72 65 73 73 20 ...    856  M_HOLD              DC.B    'Press Enter to scroll',0
+00000500                           857      ORG     $500
+00000500= 00000008                 858      DC.L    8
+00000520                           859      ORG     $520
+00000520= 00000008                 860      DC.L    8
+00000524                           861      END     START
 
 No errors detected
 No warnings generated
@@ -144,24 +871,123 @@ No warnings generated
 SYMBOL TABLE INFORMATION
 Symbol-name         Value
 -------------------------
-BADINPUT            104A
+BADINPUT            135A
+BUFF                580
 CR                  D
-EXIT                10BA
-HEX_STRING          10B2
+EA_ABS_LONG         1628
+EA_ABS_SHORT        162A
+EA_ADDR             1620
+EA_ADDRIND          1622
+EA_ADDRIND_PDEC     1626
+EA_ADDRIND_PINC     1624
+EA_DATA             161E
+EA_IMM              162C
+ENTER_HOLD          1062
+EXIT                162E
+HEX_STRING_L        13E6
+HEX_STRING_L_01     13F8
+HEX_STRING_L_02     142E
+HEX_STRING_L_03     1410
 INPEND              520
 INPSTART            500
-INPSTR              105A
+INPSTR              136A
+INPSTR_01           1380
+INPSTR_02           139A
 LF                  A
+LONGNIBBLEMASK      163E
 MAIN                1000
-MAINLOOP            1028
-M_INPENDRANGE       10DA
-M_INPINVALID        10F6
-M_INPSTARTRANGE     10BC
-NOT_NOP             103C
-NSUB11              10A2
-SR_NOP              10B6
+MAINBADRANGE        1010
+MAINLOOP            1034
+MAINLOOP_HOLD       1056
+M_HOLD              169A
+M_INPENDRANGE       1660
+M_INPINVALID        167C
+M_INPSTARTRANGE     1642
+NEG_EA              1498
+NEG_SIZE            1488
+NSUB11              13DC
+N_ADD               12AC
+N_ADDA              12BE
+N_ASL               1302
+N_ASR               1314
+N_BCLR              10F4
+N_BCS               11B0
+N_BGE               11C2
+N_BLT               11D4
+N_BRA               11F8
+N_BVC               11E6
+N_CMP               1270
+N_CMPI              10D0
+N_DIVS              1222
+N_EOR               1282
+N_JSR               1182
+N_LEA               1170
+N_LSL               12DE
+N_LSR               12F0
+N_NEG               115E
+N_NOP               1132
+N_OR                1234
+N_ORI               10E2
+N_ROL               1326
+N_ROR               1338
+N_RTS               1144
+SIZE_BYTE           15E8
+SIZE_LONG           15FA
+SIZE_WORD           160C
+SR_ADD              1464
+SR_ADDA             1468
+SR_ASL              1558
+SR_ASR              1554
+SR_BCLR             1574
+SR_BCS              1564
+SR_BGE              1568
+SR_BLT              156C
+SR_BRA              1578
+SR_BVC              1570
+SR_CMP              1474
+SR_CMPI             1478
+SR_DATA             15A8
+SR_DIVS             1480
+SR_EOR              1548
+SR_JSR              157C
+SR_LEA              1484
+SR_LSL              1550
+SR_LSR              154C
+SR_MOVE             1458
+SR_MOVEA            145C
+SR_MOVEM            1460
+SR_MULS             147C
+SR_NEG              1488
+SR_NEG_NOT_111      150C
+SR_NEG_OUT          1514
+SR_NOP              1430
+SR_OR               1540
+SR_ORI              1544
+SR_ROL              155C
+SR_ROR              1560
+SR_RTS              1580
+SR_SUB              146C
+SR_SUBQ             1470
 START               1000
-STRING_HEX          1078
-STRING_HEX_01       1080
-STRING_HEX_02       1092
-USRINPUT            1040
+STRHEXOUT           540
+STRING_HEX          13B0
+STRING_HEX_01       13B8
+STRING_HEX_02       13CC
+TABLE               107E
+USRINPUT            1350
+VALUE0000           10BE
+VALUE0001           1102
+VALUE0010           110C
+VALUE0011           1116
+VALUE0100           1120
+VALUE0101           118C
+VALUE0110           119E
+VALUE0111           1206
+VALUE1000           1210
+VALUE1001           1242
+VALUE1010           1254
+VALUE1011           125E
+VALUE1100           1290
+VALUE1101           129A
+VALUE1110           12CC
+VALUE1111           1346

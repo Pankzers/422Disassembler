@@ -108,6 +108,14 @@ N_NOP:
             JSR SR_RTS
             BRA MAINLOOP
 N_RTS:
+            EOR.L D1,D1
+            MOVE.W (A5),D1
+            AND.W #$FF00,D1
+            CMP.W #$4400,D1
+            BNE N_NEG
+            JSR SR_NEG
+            BRA MAINLOOP
+N_NEG:
             JSR SR_DATA
             BRA MAINLOOP
             
@@ -252,6 +260,7 @@ NSUB11:
 *   Converts a Long Hex Address into a string for display
 *_____________
 HEX_STRING_L:
+    MOVEM.L D0-A6,-(sp)
     MOVE.L  LONGNIBBLEMASK,D2
     MOVE.B  #8,D4
     LEA     STRHEXOUT,A2
@@ -275,50 +284,12 @@ HEX_STRING_L_03:
     CMP.B   #0,D4
     BNE     HEX_STRING_L_02
     MOVE.B  #$0,(A2)
+    MOVEM.L (sp)+,D0-A6
     RTS
 HEX_STRING_L_02:
     BRA     HEX_STRING_L_01
-    
 
-*DATA SUBROUTINE
-*_______________ 
-SR_DATA:  
-    *READ OP WORD AND CONFIRM VALIDITY (Otherwise JSR to DATA and then RTS here.)
-        *Reading OPWORD is pointless here, so it is skipped
-        *DATA requires no validation as it is, well Data.
-    
-    *OUTPUT MEMORY ADDRESS AND OPERATION NAME
-    MOVE.L  A5,D1
-    JSR     HEX_STRING_L
-    LEA     STRHEXOUT,A1
-    MOVE.B  #14,D0
-    TRAP    #15             *Output Address
-    MOVE.L  #$09444154,(A1)
-    MOVEA.L A1,A2
-    ADDA.W  #4,A2
-    MOVE.L  #$41090000,(A2)
-    TRAP    #15             *Output Operation name
-    
-    
-    
-    *BRANCH FOR <EA> MODE AND OUTPUT ARGUMENTS
-        *No EA for DATA, thus no branching here
-    MOVE.W  (A5),D1
-    SWAP    D1
-    JSR     HEX_STRING_L
-    LEA     STRHEXOUT,A1
-    MOVEA.L A1,A2
-    ADDA.W  #4,A2
-    MOVE.B  #$0,(A2)
-    MOVE.B  #13,D0
-    TRAP    #15             *Output Invalid Data found at current working word to terminal
-    *MOVE ADDRESS POINTER TO NEXT OPWORD
-    ADDA.W  #2,A5
-    
-    *RTS
-    RTS 
-    
-    
+
 *NOP SUBROUTINE
 *______________
 SR_NOP:
@@ -436,7 +407,65 @@ SR_LEA:
 *NEG SUBROUTINE
 *______________
 SR_NEG:
-    NOP *DO STUFF HERE
+    *DEFINE RELEVANT LISTS
+NEG_SIZE    DC.L    SIZE_BYTE,SIZE_WORD,SIZE_LONG,SR_DATA
+NEG_EA     DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_LONG,EA_ABS_SHORT,SR_DATA,SR_DATA,SR_DATA
+    *READ OP WORD AND CONFIRM VALIDITY (Otherwise JMP to DATA and then RTS to main.)
+    MOVEA.L A5,A2
+    ADDA.W  #1,A2
+    EOR.L   D2,D2
+    MOVE.B  (A2),D2 *Size Code
+    ANDI.B  #$C0,D2
+    LSR.B   #4,D2
+    LEA     SR_DATA,A3
+    CMPA.L  NEG_SIZE(PC,D2),A3
+    BEQ     SR_DATA
+    
+    EOR.L   D3,D3
+    EOR.L   D4,D4
+    MOVE.B  (A2),D3 *Move OPWORD to D3
+    MOVE.B  D3,D4   *MOVE OPWORD to D4
+    ANDI.B  #$38,D3 *Bitmask EA Mode
+    ANDI.B  #$07,D4 *Bitmask EA Register
+    LSR.B   #1,D3
+    
+    CMP.B   #$1C,D3
+    BNE     SR_NEG_NOT_111
+    *MOVE.B  D4,D5
+    *LSL.B   #2,D5
+    ADD.B   D4,D3
+    CMPA.L  NEG_EA(PC,D3),A3
+    BEQ     SR_DATA
+    BRA     SR_NEG_OUT
+SR_NEG_NOT_111:
+    CMPA.L  NEG_EA(PC,D3),A3
+    BEQ     SR_DATA
+SR_NEG_OUT:
+    
+    
+    *OUTPUT MEMORY ADDRESS AND OPERATION NAME
+    MOVE.L  A5,D1
+    JSR     HEX_STRING_L
+    LEA     STRHEXOUT,A1
+    MOVE.B  #14,D0 *TRAP TASK 14, Output A1 with no Carriage Return or Line Feed
+    TRAP    #15
+    MOVE.L  #$094E4547,(A1)
+    MOVEA.L A1,A2
+    ADDA.W  #4,A2
+    MOVE.B  #$0,(A2)
+    *MOVE.B  #13,D0
+    TRAP    #15
+    MOVE.L  D2,A4
+    MOVEA.L NEG_SIZE(A4),A4
+    JSR     (A4)
+    
+    *BRANCH FOR <EA> MODE AND OUTPUT ARGUMENTS
+        *No branching is necessary as there are no arguments for NOP
+    
+    *MOVE ADDRESS POINTER TO NEXT OPWORD
+    ADDA.W  #2,A5
+    
+    *RTS
     RTS  
     
     
@@ -579,6 +608,84 @@ SR_RTS:
     
     *RTS
     RTS       
+
+
+*DATA SUBROUTINE
+*_______________ 
+SR_DATA:  
+    *READ OP WORD AND CONFIRM VALIDITY (Otherwise JSR to DATA and then RTS here.)
+        *Reading OPWORD is pointless here, so it is skipped
+        *DATA requires no validation as it is, well Data.
+    
+    *OUTPUT MEMORY ADDRESS AND OPERATION NAME
+    MOVE.L  A5,D1
+    JSR     HEX_STRING_L
+    LEA     STRHEXOUT,A1
+    MOVE.B  #14,D0
+    TRAP    #15             *Output Address
+    MOVE.L  #$09444154,(A1)
+    MOVEA.L A1,A2
+    ADDA.W  #4,A2
+    MOVE.L  #$41090000,(A2)
+    TRAP    #15             *Output Operation name
+    
+    
+    
+    *BRANCH FOR <EA> MODE AND OUTPUT ARGUMENTS
+        *No EA for DATA, thus no branching here
+    MOVE.W  (A5),D1
+    SWAP    D1
+    JSR     HEX_STRING_L
+    LEA     STRHEXOUT,A1
+    MOVEA.L A1,A2
+    ADDA.W  #4,A2
+    MOVE.B  #$0,(A2)
+    MOVE.B  #13,D0
+    TRAP    #15             *Output Invalid Data found at current working word to terminal
+    *MOVE ADDRESS POINTER TO NEXT OPWORD
+    ADDA.W  #2,A5
+    
+    *RTS
+    RTS 
+
+
+size_byte:
+            LEA STRHEXOUT,A1
+            MOVE.L  #$2E420900,(A1)
+            MOVE.B  #14,D0
+            TRAP    #15
+            RTS
+size_long:
+            LEA STRHEXOUT,A1
+            MOVE.L  #$2E4C0900,(A1)
+            MOVE.B  #14,D0
+            TRAP    #15
+            RTS
+size_word:
+            LEA STRHEXOUT,A1
+            MOVE.L  #$2E570900,(A1) 
+            MOVE.B  #14,D0
+            TRAP    #15
+            RTS
+
+
+EA_DATA:
+    RTS
+EA_ADDR:
+    RTS
+EA_ADDRIND:
+    RTS
+EA_ADDRIND_PINC:
+    RTS
+EA_ADDRIND_PDEC:
+    RTS
+EA_ABS_LONG:
+    RTS
+EA_ABS_SHORT:
+    RTS
+EA_IMM:
+    RTS
+            
 
    
 *EXIT

@@ -82,28 +82,27 @@ table       dc.l    value0000
             dc.l    value1111
             
             
-value0000   CMP.W #$0000,(A5)      *Check for CMPI OPWORD. CHANGE HEX!
+value0000   MOVE.L (A5),D1     *Check for CMPI OPWORD. CHANGE HEX!
+            ANDI.W #$C000,D1
+            CMP.W #$C000, D1
             BNE N_CMPI
             JSR SR_CMPI
             BRA MAINLOOP
             
 N_CMPI:    
-            CMP.W #$0000,(A5)      *Check for ORI OPWORD. CHANGE HEX!
+            CMP.W #$0, D1      *Check for ORI OPWORD. CHANGE HEX!
             BNE N_ORI
             JSR SR_ORI
             BRA MAINLOOP
             
 N_ORI:      
-            CMP.W #$0000,(A5)      *Check for BCLR OPWORD. CHANGE HEX!
-            BNE N_BCLR
+            AND.W #$180,D1      * BITWISE AND TO CHECK IF = 111 = BCLR 
+            CMP.W #$180,D1        *CHECK FOR  BCLR WORD
+            BNE SR_DATA
             JSR SR_BCLR
             BRA MAINLOOP 
 
-N_BCLR:      
-            *CMP.W #$0000,(A5)     *not sure where to branch with last opword
-            BNE SR_DATA          
-            JSR SR_BCLR
-            BRA MAINLOOP
+  
          
 value0001
             JSR SR_DATA
@@ -138,7 +137,9 @@ N_RTS:
             BRA MAINLOOP
             
 N_NEG:
-            CMP.W #$0000,(A5)   *Check for LEA OPWORD. CHANGE HEX!
+            LSR.W #8, D1        * SHIFT BY 8 IN D1(WORD STORED IN D1?)
+            ANDI.W #7,D1        * BITWISE AND TO CHECK IF = 111 = LEA
+            CMP.W #$7,D1   *Check for LEA OPWORD. CHANGE HEX!
             BNE N_LEA
             JSR SR_LEA
             BRA MAINLOOP
@@ -150,12 +151,17 @@ N_LEA:
             BRA MAINLOOP
                      
 N_JSR:      
-            JSR SR_JSR           *wasnt sure where to branch now
+            ANDI.W #$0F00,D1    * BITWISE AND TO GET 2nd set of bits 11-8 position
+            CMP.B #$E,D1        * CHECK IF THE BITS = E(1110) IF YES = JSR
+            BNE  SR_DATA
+            JSR SR_JSR           
             BRA MAINLOOP           
                         
             
-value0101   CMP.W #$0000,(A5)    *Check for SUBQ OPWORD. CHANGE HEX!
-            BNE SR_DATA          *Not sure where to branch (SUBQ alone in 0101)
+value0101   MOVE.W (A5),D1                  
+            LSR.W  #8,D1       * SHIFT BIT BY 8 TO ISOLATE LAST BIT 
+            CMP.W #$1,D1       * COMPARE 1 TO THE LAST BIT IF = THEN SUBQ
+            BNE SR_DATA        
             JSR SR_SUBQ
             BRA MAINLOOP
             
@@ -199,112 +205,123 @@ value0111
             JSR SR_DATA
             BRA MAINLOOP
             
-value1000   CMP.W #$0000,(A5)      *Check for DIVS OPWORD. CHANGE HEX!
+value1000   MOVE.W (A5),D1
+            LSR.W #8, D1        * SHIFT BY 8 IN D1(WORD STORED IN D1?)
+            ANDI.W #7,D1        * BITWISE AND TO CHECK IF = 111 = DIVS
+            CMP.W #$7,D1        *Check for DIVS OPWORD. 
             BNE N_DIVS
             JSR SR_DIVS
             BRA MAINLOOP
             
-N_DIVS:
-            CMP.W #$0000,(A5)      *Check for OR OPWORD. CHANGE HEX!
-            BNE N_OR
-            JSR SR_OR
+N_DIVS:     CMP.W #0,D1
+            BEQ SR_SUB           * IF 000 then OR.B 
+            CMP.W #1,D1
+            BEQ SR_SUB            * IF 001 then OR.W -> < ea > V Dn -> Dn 
+            CMP.W #2,D1
+            BEQ SR_SUB           * IF 010 then OR.L -> < ea > V Dn -> Dn 
+            CMP.W #4,D1
+            BEQ SR_SUB           * IF 100 then OR.B -> Dn V < ea > -> < ea > 
+            CMP.W #5,D1
+            BEQ SR_SUB           * IF 101 then OR.W -> Dn V < ea > -> < ea > 
+            CMP.W #6,D1
+            BEQ SR_SUB           * IF 110 then OR.L -> Dn V < ea > -> < ea > 
+                        
+            JSR SR_DATA
             BRA MAINLOOP 
             
-N_OR:
-            *CMP.W #$0000,(A5)     
-            BNE SR_DATA            *not sure where to branch with last opword
-            JSR SR_OR
-            BRA MAINLOOP  
-                 
+
                       
-value1001   CMP.W #$0000,(A5)      *Check for SUB OPWORD. CHANGE HEX!
-            BNE SR_DATA            *Not sure where to branch (SUB alone in 0101)
-            JSR SR_SUB
-            BRA MAINLOOP
+value1001   CMP.W #0,D1
+            BEQ SR_SUB           * IF 000 then SUB.B 
+            CMP.W #1,D1
+            BEQ SR_SUB            * IF 001 then SUB.W -> < ea > V Dn -> Dn 
+            CMP.W #2,D1
+            BEQ SR_SUB           * IF 010 then SUB.L -> < ea > V Dn -> Dn 
+            CMP.W #4,D1
+            BEQ SR_SUB           * IF 100 then SUB.B -> Dn V < ea > -> < ea > 
+            CMP.W #5,D1
+            BEQ SR_SUB           * IF 101 then SUB.W -> Dn V < ea > -> < ea > 
+            CMP.W #6,D1
+            BEQ SR_SUB           * IF 110 then SUB.L -> Dn V < ea > -> < ea > 
+            
+            JSR SR_DATA
+            BRA MAINLOOP 
+
             
 value1010
             JSR SR_DATA
             BRA MAINLOOP
             
-value1011   CMP.W #$0000,(A5)      *Check for CMP OPWORD. CHANGE HEX!
-            BNE N_CMP
-            JSR SR_CMP
-            BRA MAINLOOP
-
-N_CMP:
-            CMP.W #$0000,(A5)      *Check for EOR OPWORD. CHANGE HEX!
-            BNE N_EOR
+value1011   MOVE.W (A5),D1
+            AND.W #$0100,D1
+            CMP.W #$0100,D1
+            BLT CMP
             JSR SR_EOR
             BRA MAINLOOP
             
-N_EOR:
-            *CMP.W #$0000,(A5)     
-            BNE SR_DATA           *not sure where to branch with last opword
-            JSR SR_EOR
-            BRA MAINLOOP           
+CMP:
+        JSR SR_CMP
+        BRA MAINLOOP            
+         
                     
 value1100
-            JSR SR_DATA
+            MOVE.W (A5),D1
+            AND.W #$1C0,D1      * BITWISE AND TO CHECK IF = 111 = MULS  
+            CMP.W #$1C0,D1        *CHECK FOR  MULS WORD
+            BNE SR_DATA
+            JSR SR_MULS
             BRA MAINLOOP
             
-value1101   CMP.W #$0000,(A5)     *Check for ADD OPWORD. CHANGE HEX!
-            BNE N_ADD
-            JSR SR_ADD
-            BRA MAINLOOP
-
+value1101   CMP.W #0,D1
+            BEQ SR_ADD           * IF 000 then ADD.B 
+            CMP.W #1,D1
+            BEQ SR_ADD            * IF 001 then ADD.W -> < ea > V Dn -> Dn 
+            CMP.W #2,D1
+            BEQ SR_ADD           * IF 010 then ADD.L -> < ea > V Dn -> Dn 
+            CMP.W #4,D1
+            BEQ SR_ADD           * IF 100 then ADD.B -> Dn V < ea > -> < ea > 
+            CMP.W #5,D1
+            BEQ SR_ADD           * IF 101 then ADD.W -> Dn V < ea > -> < ea > 
+            CMP.W #6,D1
+            BEQ SR_ADD           * IF 110 then ADD.L -> Dn V < ea > -> < ea > 
+                        
+            JSR N_ADD
+            
 N_ADD:
-            CMP.W #$0000,(A5)     *Check for ADDA OPWORD. CHANGE HEX!
-            BNE N_ADDA
-            JSR SR_ADDA
-            BRA MAINLOOP
-            
+            CMP.W #3,D1
+            BEQ SR_ADDA            * IF 011 then ADD.B 
+            CMP.W #7,D1
+            BEQ SR_ADDA            * IF 111 then ADD.W -> < ea > V Dn -> Dn 
+            JSR N_ADDA
+         
 N_ADDA:
-            *CMP.W #$0000,(A5)     
-            BNE SR_DATA           *not sure where to branch with last opword
-            JSR SR_ADDA
+            JSR SR_DATA
             BRA MAINLOOP                
             
                        
-value1110   CMP.W #$0000,(A5)     *Check for LSL OPWORD. CHANGE HEX!
-            BNE N_LSL
-            JSR SR_LSL
+value1110   MOVE.W (A5),D1
+            AND.W #$8,D1                   *CHECK LSL/LSR
+            BEQ LSL_LSR
+            JSR IS_ROL_ROR   
             BRA MAINLOOP
-
-N_LSL:
-            CMP.W #$0000,(A5)    *Check for LSR OPWORD. CHANGE HEX!
-            BNE N_LSR
+            
+LSL_LSR     AND.W #$100,D1
+            BEQ SR_LSL
             JSR SR_LSR
-            BRA MAINLOOP
             
-N_LSR:
-            CMP.W #$0000,(A5)    *Check for ASL OPWORD. CHANGE HEX!
-            BNE N_ASL
-            JSR SR_ASL
-            BRA MAINLOOP     
 
-N_ASL:
-            CMP.W #$0000,(A5)    *Check for ASR OPWORD. CHANGE HEX!
-            BNE N_ASR
-            JSR SR_ASR
-            BRA MAINLOOP  
 
-N_ASR:
-            CMP.W #$0000,(A5)     *Check for ROL OPWORD. CHANGE HEX!
-            BNE N_ROL
-            JSR SR_ROL
-            BRA MAINLOOP   
 
-N_ROL:
-            CMP.W #$0000,(A5)     *Check for ROR OPWORD. CHANGE HEX!
-            BNE N_ROR
-            JSR SR_ROR
-            BRA MAINLOOP 
+IS_ROL_ROR  AND.W #$18,D1                   *CHECK LSL/LSR
+            BEQ ROL_ROR
+            JSR ASL_ASR   
             
-N_ROR:
-            *CMP.W #$0000,(A5)     
-            BNE SR_DATA          *not sure where to branch with last opword
-            JSR SR_ROR
-            BRA MAINLOOP              
+
+ROL_ROR     AND.W #$100,D1
+            BEQ SR_ROL
+            JSR SR_LSR
+
+ASL_ASR
             
 value1111
             JSR SR_DATA
@@ -526,8 +543,50 @@ SR_CMP:
 *CMPI SUBROUTINE
 *______________
 SR_CMPI:
-    NOP *DO STUFF HERE
-    RTS    
+CMPI_SIZE    DC.L    SIZE_BYTE,SIZE_WORD,SIZE_LONG,SR_DATA
+CMPI_EA      DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_LONG,EA_ABS_SHORT,SR_DATA,SR_DATA,SR_DATA
+        *READ OP WORD AND CONFIRM VALIDITY (Otherwise JMP to DATA and then RTS to main.)
+         MOVEA.L A5,A2
+         ADDA.W #1,A2
+         EOR.L D2,D2
+         MOVE.B (A2),D2
+         ANDI.B #$C0,D2
+         LSR.B  #4,D2
+         LEA SR_DATA, A3
+         CMPA.L CMPI_SIZE(PC,D2),A3
+         BEQ    SR_DATA
+         BRA SR_CMPI_OUT
+         
+        
+        ******************
+        *EA MODE CALCULATION
+        ******************
+         EOR.L   D3,D3
+         EOR.L   D4,D4
+         MOVE.B  (A2),D3 *Move OPWORD to D3
+         MOVE.B  D3,D4   *MOVE OPWORD to D4
+         ANDI.B  #$38,D3 * BITMASK TO FIND EA MODE
+         ANDI.B  #$07,D4 *BITMASK TO FIND REGISTER VALUE
+        
+        ******************
+        *PRINT OUT
+        ******************
+SR_CMPI_OUT        
+        MOVE.L  A5,D1
+        JSR     HEX_STRING_L
+        LEA     STRHEXOUT,A1
+        MOVE.B  #14,D0 *TRAP TASK 14, Output A1 with no Carriage Return or Line Feed
+        TRAP    #15
+        MOVE.L  #$434D5049,(A1) *MISSING TAB BECAUSE OVER 32 BITS!
+        MOVEA.L A1,A2
+        ADDA.W  #4,A2
+        MOVE.B  #$0,(A2)
+        TRAP    #15
+        MOVE.L  D2,A4
+        MOVEA.L CMPI_SIZE(A4),A4
+        JSR     (A4)
+        
+        RTS    
 
 
 *MULS SUBROUTINE
@@ -625,7 +684,51 @@ SR_OR:
 *ORI SUBROUTINE
 *______________
 SR_ORI:
-    NOP *DO STUFF HERE
+ORI_SIZE    DC.L    SIZE_BYTE,SIZE_WORD,SIZE_LONG,SR_DATA
+ORI_EA      DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_LONG,EA_ABS_SHORT,SR_DATA,SR_DATA,SR_DATA
+        *READ OP WORD AND CONFIRM VALIDITY (Otherwise JMP to DATA and then RTS to main.)
+         MOVEA.L A5,A2
+         ADDA.W #1,A2
+         EOR.L D2,D2
+         MOVE.B (A2),D2
+         ANDI.B #$C0,D2
+         LSR.B  #4,D2
+         LEA SR_DATA, A3
+         CMPA.L ORI_SIZE(PC,D2),A3
+         BEQ    SR_DATA
+         BRA SR_ORI_OUT
+        ********************
+        *EA MODE CALCULATION
+        ******************
+         EOR.L   D3,D3
+         EOR.L   D4,D4
+         MOVE.B  (A2),D3 *Move OPWORD to D3
+         MOVE.B  D3,D4   *MOVE OPWORD to D4
+         ANDI.B  #$38,D3 * BITMASK TO FIND EA MODE
+         ANDI.B  #$07,D4 *BITMASK TO FIND REGISTER VALUE
+        
+        ******************
+        *PRINT OUT
+        ******************
+SR_ORI_OUT        
+        MOVE.L  A5,D1
+        JSR     HEX_STRING_L
+        LEA     STRHEXOUT,A1
+        MOVE.B  #14,D0 *TRAP TASK 14, Output A1 with no Carriage Return or Line Feed
+        TRAP    #15
+        MOVE.L  #$094F5249,(A1) 
+        MOVEA.L A1,A2
+        ADDA.W  #4,A2
+        MOVE.B  #$0,(A2)
+        TRAP    #15
+        MOVE.L  D2,A4
+        MOVEA.L ORI_SIZE(A4),A4
+        JSR     (A4)
+        
+       **********
+       * GET EA TO PRINT OUT
+       **********
+
     RTS 
     
  
@@ -867,6 +970,12 @@ M_HOLD              DC.B    'Press Enter to scroll',0
 
 
 
+
+
+*~Font name~Courier New~
+*~Font size~10~
+*~Tab type~1~
+*~Tab size~4~
 
 
 *~Font name~Courier New~

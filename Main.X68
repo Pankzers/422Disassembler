@@ -232,8 +232,8 @@ value1000
             MOVE.W (A5),D1
             AND.W #$1C0,D1      * BITWISE AND TO CHECK IF = 111 = DIVS  
             CMP.W #$1C0,D1        *CHECK FOR  DIVS WORD
-            BEQ SR_DIVS
-            JSR N_DIVS
+            BEQ N_DIVS
+            JSR SR_DIVS
             BRA MAINLOOP
             
 

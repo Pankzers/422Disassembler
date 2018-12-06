@@ -28,8 +28,8 @@ MAINBADRANGE:
 MAINLOOP:
     CMP.B   #0,D7
     BEQ     MAINLOOP_HOLD
-    CMP.L   A5,A6       *Check for End of Range
-    BLT     EXIT        *Branch to Exit
+    CMP.L   A5,A6         *Check for End of Range
+    BLT     EXIT          *Branch to Exit
     MOVE.W  (A5),D6       * Get and move instruction and increment
     
                    
@@ -151,7 +151,7 @@ N_NEG:      EOR.L D1,D1
                        
 N_LEA:      EOR.L D1,D1
             MOVE.W (A5),D1
-            CMP.W #$0000,(A5)   *Check for JSR OPWORD. CHANGE HEX!
+            CMP.W #$0000,(A5)   *Check for JSR OPWORD. CHANGE HEX! FIXED
             BNE N_JSR
             JSR SR_JSR
             BRA MAINLOOP
@@ -580,9 +580,52 @@ SR_ADD:
 *ADDA SUBROUTINE
 *______________
 SR_ADDA:
-    NOP *DO STUFF HERE
-    ADDA.W  #2,A5
-    RTS   
+ADDA_SIZE    DC.L    SIZE_BYTE,SIZE_WORD,SIZE_LONG,SR_DATA
+ADDA_EA      DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_LONG,EA_ABS_SHORT,SR_DATA,SR_DATA,SR_DATA
+        *READ OP WORD AND CONFIRM VALIDITY (Otherwise JMP to DATA and then RTS to main.)
+         MOVEA.L A5,A2
+         ADDA.W #1,A2
+         EOR.L D2,D2
+         MOVE.B (A2),D2
+         ANDI.B #$C0,D2
+         LSR.B  #4,D2
+         LEA SR_DATA, A3
+         CMPA.L ADDA_SIZE(PC,D2),A3
+         BEQ    SR_DATA
+         BRA SR_ADDA_OUT
+         
+        
+        ******************
+        *EA MODE CALCULATION
+        ******************
+         EOR.L   D3,D3
+         EOR.L   D4,D4
+         MOVE.B  (A2),D3 *Move OPWORD to D3
+         MOVE.B  D3,D4   *MOVE OPWORD to D4
+         ANDI.B  #$38,D3 *BITMASK TO FIND EA MODE
+         ANDI.B  #$07,D4 *BITMASK TO FIND REGISTER VALUE
+        
+        ******************
+        *PRINT OUT
+        ******************
+SR_ADDA_OUT        
+        MOVE.L  A5,D1
+        JSR     HEX_STRING_L
+        LEA     STRHEXOUT,A1
+        MOVE.B  #14,D0 *TRAP TASK 14, Output A1 with no Carriage Return or Line Feed
+        TRAP    #15
+        MOVE.L  #$09414444,(A1) *Store hex value of ASCII output
+        MOVEA.L A1,A2
+        ADDA.W  #4,A2
+        MOVE.W  #$4100,(A2)     *Last 2 values of ASCII (since 4 letter OP)
+        TRAP    #15
+        MOVE.L  D2,A4
+        MOVEA.L CMPI_SIZE(A4),A4
+        JSR     (A4)
+        
+        ADDA.W  #2,A5
+        
+        RTS   
     
     
 *SUB SUBROUTINE
@@ -596,10 +639,53 @@ SR_SUB:
 *SUBQ SUBROUTINE
 *______________
 SR_SUBQ:
-    NOP *DO STUFF HERE
-    ADDA.W  #2,A5
-    RTS  
-
+SUBQ_SIZE    DC.L    SIZE_BYTE,SIZE_WORD,SIZE_LONG,SR_DATA
+SUBQ_EA      DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_LONG,EA_ABS_SHORT,SR_DATA,SR_DATA,SR_DATA
+        *READ OP WORD AND CONFIRM VALIDITY (Otherwise JMP to DATA and then RTS to main.)
+         MOVEA.L A5,A2
+         ADDA.W #1,A2
+         EOR.L D2,D2
+         MOVE.B (A2),D2
+         ANDI.B #$C0,D2                         *LIKELY NEED TO CHANGE THESE VALUES
+         LSR.B  #4,D2                           *LIKELY NEED TO CHANGE SHIFT AMOUNT TOO??
+         LEA SR_DATA, A3
+         CMPA.L SUBQ_SIZE(PC,D2),A3
+         BEQ    SR_DATA
+         BRA SR_SUBQ_OUT
+         
+        
+        ******************
+        *EA MODE CALCULATION
+        ******************
+         EOR.L   D3,D3
+         EOR.L   D4,D4
+         MOVE.B  (A2),D3 *Move OPWORD to D3
+         MOVE.B  D3,D4   *MOVE OPWORD to D4
+         ANDI.B  #$38,D3 *BITMASK TO FIND EA MODE
+         ANDI.B  #$07,D4 *BITMASK TO FIND REGISTER VALUE
+        
+        ******************
+        *PRINT OUT
+        ******************
+SR_SUBQ_OUT        
+        MOVE.L  A5,D1
+        JSR     HEX_STRING_L
+        LEA     STRHEXOUT,A1
+        MOVE.B  #14,D0          *TRAP TASK 14, Output A1 with no Carriage Return or Line Feed
+        TRAP    #15
+        MOVE.L  #$09535542,(A1) *Store hex value of ASCII output
+        MOVEA.L A1,A2
+        ADDA.W  #4,A2
+        MOVE.W  #$5100,(A2)     *Last 2 values of ASCII (since 4 letter OP)
+        TRAP    #15
+        MOVE.L  D2,A4
+        MOVEA.L SUBQ_SIZE(A4),A4
+        JSR     (A4)
+        
+        ADDA.W  #2,A5
+        
+        RTS    
+        
 
 *CMP SUBROUTINE
 *______________
@@ -634,7 +720,7 @@ CMPI_EA      DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,
          EOR.L   D4,D4
          MOVE.B  (A2),D3 *Move OPWORD to D3
          MOVE.B  D3,D4   *MOVE OPWORD to D4
-         ANDI.B  #$38,D3 * BITMASK TO FIND EA MODE
+         ANDI.B  #$38,D3 *BITMASK TO FIND EA MODE
          ANDI.B  #$07,D4 *BITMASK TO FIND REGISTER VALUE
         
         ******************
@@ -646,10 +732,10 @@ SR_CMPI_OUT
         LEA     STRHEXOUT,A1
         MOVE.B  #14,D0 *TRAP TASK 14, Output A1 with no Carriage Return or Line Feed
         TRAP    #15
-        MOVE.L  #$09434D50,(A1) *MISSING TAB BECAUSE OVER 32 BITS!
+        MOVE.L  #$09434D50,(A1) *Store hex value of ASCII output
         MOVEA.L A1,A2
         ADDA.W  #4,A2
-        MOVE.W  #$4900,(A2)
+        MOVE.W  #$4900,(A2)     *Last 2 values of ASCII (since 4 letter OP)
         TRAP    #15
         MOVE.L  D2,A4
         MOVEA.L CMPI_SIZE(A4),A4
@@ -663,17 +749,105 @@ SR_CMPI_OUT
 *MULS SUBROUTINE
 *______________
 SR_MULS:
-    NOP *DO STUFF HERE
-    ADDA.W  #2,A5
-    RTS    
+MULS_SIZE    DC.L    SIZE_BYTE,SIZE_WORD,SIZE_LONG,SR_DATA
+MULS_EA      DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_LONG,EA_ABS_SHORT,SR_DATA,SR_DATA,SR_DATA
+        *READ OP WORD AND CONFIRM VALIDITY (Otherwise JMP to DATA and then RTS to main.)
+         MOVEA.L A5,A2
+         ADDA.W #1,A2
+         EOR.L D2,D2
+         MOVE.B (A2),D2
+         ANDI.B #$C0,D2                         *LIKELY NEED TO CHANGE THESE VALUES
+         LSR.B  #4,D2                           *LIKELY NEED TO CHANGE SHIFT AMOUNT TOO??
+         LEA SR_DATA, A3
+         CMPA.L MULS_SIZE(PC,D2),A3
+         BEQ    SR_DATA
+         BRA SR_MULS_OUT
+         
+        
+        ******************
+        *EA MODE CALCULATION
+        ******************
+         EOR.L   D3,D3
+         EOR.L   D4,D4
+         MOVE.B  (A2),D3 *Move OPWORD to D3
+         MOVE.B  D3,D4   *MOVE OPWORD to D4
+         ANDI.B  #$38,D3 *BITMASK TO FIND EA MODE
+         ANDI.B  #$07,D4 *BITMASK TO FIND REGISTER VALUE
+        
+        ******************
+        *PRINT OUT
+        ******************
+SR_MULS_OUT        
+        MOVE.L  A5,D1
+        JSR     HEX_STRING_L
+        LEA     STRHEXOUT,A1
+        MOVE.B  #14,D0          *TRAP TASK 14, Output A1 with no Carriage Return or Line Feed
+        TRAP    #15
+        MOVE.L  #$094D554C,(A1) *Store hex value of ASCII output
+        MOVEA.L A1,A2
+        ADDA.W  #4,A2
+        MOVE.W  #$5300,(A2)     *Last 2 values of ASCII (since 4 letter OP)
+        TRAP    #15
+        MOVE.L  D2,A4
+        MOVEA.L MULS_SIZE(A4),A4
+        JSR     (A4)
+        
+        ADDA.W  #2,A5
+        
+        RTS    
+   
 
 
 *DIVS SUBROUTINE
 *______________
 SR_DIVS:
-    NOP *DO STUFF HERE
-    ADDA.W  #2,A5
-    RTS  
+DIVS_SIZE    DC.L    SIZE_BYTE,SIZE_WORD,SIZE_LONG,SR_DATA
+DIVS_EA      DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_LONG,EA_ABS_SHORT,SR_DATA,SR_DATA,SR_DATA
+        *READ OP WORD AND CONFIRM VALIDITY (Otherwise JMP to DATA and then RTS to main.)
+         MOVEA.L A5,A2
+         ADDA.W #1,A2
+         EOR.L D2,D2
+         MOVE.B (A2),D2
+         ANDI.B #$C0,D2                         *LIKELY NEED TO CHANGE THESE VALUES
+         LSR.B  #4,D2                           *LIKELY NEED TO CHANGE SHIFT AMOUNT TOO??
+         LEA SR_DATA, A3
+         CMPA.L DIVS_SIZE(PC,D2),A3
+         BEQ    SR_DATA
+         BRA SR_DIVS_OUT
+         
+        
+        ******************
+        *EA MODE CALCULATION
+        ******************
+         EOR.L   D3,D3
+         EOR.L   D4,D4
+         MOVE.B  (A2),D3 *Move OPWORD to D3
+         MOVE.B  D3,D4   *MOVE OPWORD to D4
+         ANDI.B  #$38,D3 *BITMASK TO FIND EA MODE
+         ANDI.B  #$07,D4 *BITMASK TO FIND REGISTER VALUE
+        
+        ******************
+        *PRINT OUT
+        ******************
+SR_DIVS_OUT        
+        MOVE.L  A5,D1
+        JSR     HEX_STRING_L
+        LEA     STRHEXOUT,A1
+        MOVE.B  #14,D0          *TRAP TASK 14, Output A1 with no Carriage Return or Line Feed
+        TRAP    #15
+        MOVE.L  #$09444956,(A1) *Store hex value of ASCII output
+        MOVEA.L A1,A2
+        ADDA.W  #4,A2
+        MOVE.W  #$5300,(A2)     *Last 2 values of ASCII (since 4 letter OP)
+        TRAP    #15
+        MOVE.L  D2,A4
+        MOVEA.L DIVS_SIZE(A4),A4
+        JSR     (A4)
+        
+        ADDA.W  #2,A5
+        
+        RTS    
+
 
 
 *LEA SUBROUTINE
@@ -721,8 +895,7 @@ SR_NEG_NOT_111:
     CMPA.L  NEG_EA(PC,D3),A3
     BEQ     SR_DATA
 SR_NEG_OUT:
-    
-    
+        
     *OUTPUT MEMORY ADDRESS AND OPERATION NAME
     MOVE.L  A5,D1
     JSR     HEX_STRING_L
@@ -788,7 +961,7 @@ ORI_EA      DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,S
     EOR.L   D4,D4
     MOVE.B  (A2),D3 *Move OPWORD to D3
     MOVE.B  D3,D4   *MOVE OPWORD to D4
-    ANDI.B  #$38,D3 * BITMASK TO FIND EA MODE
+    ANDI.B  #$38,D3 *BITMASK TO FIND EA MODE
     ANDI.B  #$07,D4 *BITMASK TO FIND REGISTER VALUE
         
     ******************
@@ -809,9 +982,9 @@ SR_ORI_OUT
     MOVEA.L ORI_SIZE(A4),A4
     JSR     (A4)
         
-    **********
+    ************************
     * GET EA TO PRINT OUT
-    **********
+    ************************
     *MOVE ADDRESS POINTER TO NEXT OPWORD
     ADDA.W  #2,A5
     *OUTPUT FINAL CR,LF
@@ -1136,6 +1309,7 @@ M_HOLD              DC.B    'Press Enter to scroll',0
 *~Font size~10~
 *~Tab type~1~
 *~Tab size~4~
+
 
 
 

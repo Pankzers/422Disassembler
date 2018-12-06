@@ -868,9 +868,54 @@ SR_DIVS_OUT
 *LEA SUBROUTINE
 *______________
 SR_LEA:
-    NOP *DO STUFF HERE
-    ADDA.W  #2,A5
-    RTS
+LEA_SIZE    DC.L    SIZE_BYTE,SIZE_WORD,SIZE_LONG,SR_DATA
+LEA_EA      DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_LONG,EA_ABS_SHORT,SR_DATA,SR_DATA,SR_DATA
+        *READ OP WORD AND CONFIRM VALIDITY (Otherwise JMP to DATA and then RTS to main.)
+         MOVEA.L A5,A2
+         ADDA.W #1,A2
+         EOR.L D2,D2
+         MOVE.B (A2),D2
+         ANDI.B #$C0,D2                       
+         LSR.B  #4,D2
+         LEA SR_DATA, A3
+         CMPA.L LEA_SIZE(PC,D2),A3
+         BEQ    SR_DATA
+        
+         
+        
+        ******************
+        *EA MODE CALCULATION
+        ******************
+         EOR.L   D3,D3
+         EOR.L   D4,D4
+         MOVE.B  (A2),D3 *Move OPWORD to D3
+         MOVE.B  D3,D4   *MOVE OPWORD to D4
+         ANDI.B  #$38,D3 * BITMASK TO FIND EA MODE
+         ANDI.B  #$07,D4 *BITMASK TO FIND REGISTER VALUE
+         BRA SR_LEA_OUT
+        ******************
+        *PRINT OUT
+        ******************
+SR_LEA_OUT        
+        MOVE.L  A5,D1
+        JSR     HEX_STRING_L
+        LEA     STRHEXOUT,A1
+        MOVE.B  #14,D0 *TRAP TASK 14, Output A1 with no Carriage Return or Line Feed
+        TRAP    #15
+        MOVE.L  #$094C4541,(A1) 
+        MOVEA.L A1,A2
+        ADDA.W  #4,A2
+        MOVE.W  #$4900,(A2)
+        TRAP    #15
+        MOVE.L  D2,A4
+        MOVEA.L LEA_SIZE(A4),A4
+        JSR     (A4)
+        
+        ADDA.W  #2,A5
+        
+        RTS    
+
+
 
 
 *NEG SUBROUTINE

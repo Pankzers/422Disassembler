@@ -89,15 +89,17 @@ value0000   MOVE.L (A5),D1     *Check for CMPI OPWORD. CHANGE HEX!
             JSR SR_CMPI
             BRA MAINLOOP
             
-N_CMPI:    
+N_CMPI:     EOR.L D1,D1
+            MOVE.W (A5),D1
             CMP.W #$0, D1      *Check for ORI OPWORD. CHANGE HEX!
             BNE N_ORI
             JSR SR_ORI
             BRA MAINLOOP
             
-N_ORI:      
-            AND.W #$180,D1      * BITWISE AND TO CHECK IF = 111 = BCLR 
-            CMP.W #$180,D1        *CHECK FOR  BCLR WORD
+N_ORI:      EOR.L D1,D1
+            MOVE.W (A5),D1
+            AND.W #$180,D1      * BITWISE AND TO CHECK IF = 111 = BCLR  
+            CMP.W #$180,D1        *CHECK FOR  BCLR  WORD
             BNE N_BCLR
             JSR SR_BCLR
             BRA MAINLOOP 
@@ -139,21 +141,23 @@ N_RTS:
             JSR SR_NEG
             BRA MAINLOOP
             
-N_NEG:
-            LSR.W #8, D1        * SHIFT BY 8 IN D1(WORD STORED IN D1?)
-            ANDI.W #7,D1        * BITWISE AND TO CHECK IF = 111 = LEA
-            CMP.W #$7,D1   *Check for LEA OPWORD. CHANGE HEX!
-            BNE N_LEA
-            JSR SR_LEA
+N_NEG:      EOR.L D1,D1
+            MOVE.W (A5),D1
+            AND.W #$1C0,D1      * BITWISE AND TO CHECK IF = 111 = LEA  
+            CMP.W #$1C0,D1        *CHECK FOR  LEA WORD
+            BEQ SR_LEA
+            JSR N_LEA
             BRA MAINLOOP
                        
-N_LEA:      
+N_LEA:      EOR.L D1,D1
+            MOVE.W (A5),D1
             CMP.W #$0000,(A5)   *Check for JSR OPWORD. CHANGE HEX!
             BNE N_JSR
             JSR SR_JSR
             BRA MAINLOOP
                      
-N_JSR:      
+N_JSR:      EOR.L D1,D1
+            MOVE.W (A5),D1
             ANDI.W #$0F00,D1    * BITWISE AND TO GET 2nd set of bits 11-8 position
             CMP.B #$E,D1        * CHECK IF THE BITS = E(1110) IF YES = JSR
             BNE  N_JSR_02
@@ -164,40 +168,46 @@ N_JSR_02:
             BRA MAINLOOP      
                         
             
-value0101   MOVE.W (A5),D1                  
-            LSR.W  #8,D1       * SHIFT BIT BY 8 TO ISOLATE LAST BIT 
-            CMP.W #$1,D1       * COMPARE 1 TO THE LAST BIT IF = THEN SUBQ
-            BNE N_SUBQ        
+value0101   MOVE.W (A5),D1
+            AND.W #$0100,D1
+            CMP.W #$0100,D1
+            BNE N_SUBQ
             JSR SR_SUBQ
             BRA MAINLOOP
 N_SUBQ:
             JSR SR_DATA
             BRA MAINLOOP
             
-value0110   CMP.W #$0000,(A5)    *Check for BCS OPWORD. CHANGE HEX!
+value0110   EOR.L D1,D1
+            MOVE.W (A5),D1
+            CMP.W #$0000,(A5)    *Check for BCS OPWORD. CHANGE HEX!
             BNE N_BCS
             JSR SR_BCS
             BRA MAINLOOP
             
-N_BCS: 
+N_BCS:      EOR.L D1,D1
+            MOVE.W (A5),D1
             CMP.W #$0000,(A5)      *Check for BGE OPWORD. CHANGE HEX!
             BNE N_BGE
             JSR SR_BGE
             BRA MAINLOOP    
 
-N_BGE:
+N_BGE:      EOR.L D1,D1
+            MOVE.W (A5),D1
             CMP.W #$0000,(A5)      *Check for BLT OPWORD. CHANGE HEX!
             BNE N_BLT
             JSR SR_BLT
             BRA MAINLOOP    
 
-N_BLT:
+N_BLT:      EOR.L D1,D1
+            MOVE.W (A5),D1
             CMP.W #$0000,(A5)      *Check for BVC OPWORD. CHANGE HEX!
             BNE N_BVC
             JSR SR_BVC
             BRA MAINLOOP   
 
-N_BVC:
+N_BVC:      EOR.L D1,D1
+            MOVE.W (A5),D1
             CMP.W #$0000,(A5)      *Check for BRA OPWORD. CHANGE HEX!
             BNE N_BRA
             JSR SR_BRA
@@ -209,7 +219,8 @@ N_BRA:
             JSR SR_BRA
             BRA MAINLOOP
 N_BRA_02:
-            JSR SR_DATA
+                
+            JSR SR_DATA            *not sure where to branch with last opword
             BRA MAINLOOP          
             
             
@@ -217,14 +228,15 @@ value0111
             JSR SR_DATA
             BRA MAINLOOP
             
-value1000   MOVE.W (A5),D1
-            LSR.W #8, D1        * SHIFT BY 8 IN D1(WORD STORED IN D1?)
-            ANDI.W #7,D1        * BITWISE AND TO CHECK IF = 111 = DIVS
-            CMP.W #$7,D1        *Check for DIVS OPWORD. 
-            BNE N_DIVS
-            JSR SR_DIVS
+value1000   
+            MOVE.W (A5),D1
+            AND.W #$1C0,D1      * BITWISE AND TO CHECK IF = 111 = DIVS  
+            CMP.W #$1C0,D1        *CHECK FOR  DIVS WORD
+            BEQ SR_DIVS
+            JSR N_DIVS
             BRA MAINLOOP
             
+
 N_DIVS:     
             CMP.W #6,D1
             BGT N_OR
@@ -250,13 +262,13 @@ N_OR:
             
 
                       
+
 value1001   
             CMP.W #6,D1
             BGT N_SUB
             JSR SR_SUB
             BRA MAINLOOP
             *THIS CODE SHOULD NOT BE ACCESSED IT IS BAD!
-
             CMP.W #0,D1
             BEQ SR_SUB           * IF 000 then SUB.B 
             CMP.W #1,D1
@@ -302,13 +314,13 @@ N_MULS:
             JSR SR_DATA
             BRA MAINLOOP
             
+
 value1101   
             CMP.W #6,D1
             BGT N_ADD
             JSR SR_ADD
             BRA MAINLOOP
             *THIS CODE SHOULD NOT BE ACCESSED IT IS BAD!
-
             CMP.W #0,D1
             BEQ SR_ADD           * IF 000 then ADD.B 
             CMP.W #1,D1
@@ -333,7 +345,7 @@ N_ADD:
             BEQ SR_ADDA            * IF 111 then ADD.W -> < ea > V Dn -> Dn 
             JSR N_ADDA
          
-N_ADDA:
+N_ADDA: 
             JSR SR_DATA
             BRA MAINLOOP                
             
@@ -348,19 +360,25 @@ value1110
             BRA IS_ROL_ROR   
             *BRA MAINLOOP
             
-LSL_LSR     AND.W #$100,D1
+LSL_LSR     EOR.L D1,D1
+            MOVE.W (A5),D1
+            AND.W #$100,D1
             BEQ SR_LSL
             JSR SR_LSR
             
 
 
 
-IS_ROL_ROR  AND.W #$18,D1                   *CHECK LSL/LSR
+IS_ROL_ROR  EOR.L D1,D1
+            MOVE.W (A5),D1
+            AND.W #$18,D1                   *CHECK LSL/LSR
             BEQ ROL_ROR
             JSR ASL_ASR   
             
 
-ROL_ROR     AND.W #$100,D1
+ROL_ROR     EOR.L D1,D1
+            MOVE.W (A5),D1
+            AND.W #$100,D1
             BEQ SR_ROL
             JSR SR_LSR
 
@@ -1059,6 +1077,7 @@ M_HOLD              DC.B    'Press Enter to scroll',0
 *~Font size~10~
 *~Tab type~1~
 *~Tab size~4~
+
 
 
 

@@ -98,9 +98,12 @@ N_CMPI:
 N_ORI:      
             AND.W #$180,D1      * BITWISE AND TO CHECK IF = 111 = BCLR 
             CMP.W #$180,D1        *CHECK FOR  BCLR WORD
-            BNE SR_DATA
+            BNE N_BCLR
             JSR SR_BCLR
             BRA MAINLOOP 
+N_BCLR:
+            JSR SR_DATA
+            BRA MAINLOOP
 
   
          
@@ -153,16 +156,22 @@ N_LEA:
 N_JSR:      
             ANDI.W #$0F00,D1    * BITWISE AND TO GET 2nd set of bits 11-8 position
             CMP.B #$E,D1        * CHECK IF THE BITS = E(1110) IF YES = JSR
-            BNE  SR_DATA
+            BNE  N_JSR_02
             JSR SR_JSR           
-            BRA MAINLOOP           
+            BRA MAINLOOP     
+N_JSR_02:
+            JSR SR_DATA
+            BRA MAINLOOP      
                         
             
 value0101   MOVE.W (A5),D1                  
             LSR.W  #8,D1       * SHIFT BIT BY 8 TO ISOLATE LAST BIT 
             CMP.W #$1,D1       * COMPARE 1 TO THE LAST BIT IF = THEN SUBQ
-            BNE SR_DATA        
+            BNE N_SUBQ        
             JSR SR_SUBQ
+            BRA MAINLOOP
+N_SUBQ:
+            JSR SR_DATA
             BRA MAINLOOP
             
 value0110   CMP.W #$0000,(A5)    *Check for BCS OPWORD. CHANGE HEX!
@@ -196,8 +205,11 @@ N_BVC:
 
 N_BRA:      
             *CMP.W #$0000,(A5)    
-            BNE SR_DATA            *not sure where to branch with last opword
+            BNE N_BRA_02            *not sure where to branch with last opword
             JSR SR_BRA
+            BRA MAINLOOP
+N_BRA_02:
+            JSR SR_DATA
             BRA MAINLOOP          
             
             
@@ -213,7 +225,13 @@ value1000   MOVE.W (A5),D1
             JSR SR_DIVS
             BRA MAINLOOP
             
-N_DIVS:     CMP.W #0,D1
+N_DIVS:     
+            CMP.W #6,D1
+            BGT N_OR
+            JSR SR_OR
+            BRA MAINLOOP
+            *THIS CODE SHOULD NOT BE ACCESSED IT IS BAD!
+            CMP.W #0,D1
             BEQ SR_SUB           * IF 000 then OR.B 
             CMP.W #1,D1
             BEQ SR_SUB            * IF 001 then OR.W -> < ea > V Dn -> Dn 
@@ -225,13 +243,21 @@ N_DIVS:     CMP.W #0,D1
             BEQ SR_SUB           * IF 101 then OR.W -> Dn V < ea > -> < ea > 
             CMP.W #6,D1
             BEQ SR_SUB           * IF 110 then OR.L -> Dn V < ea > -> < ea > 
-                        
+            
+N_OR:            
             JSR SR_DATA
             BRA MAINLOOP 
             
 
                       
-value1001   CMP.W #0,D1
+value1001   
+            CMP.W #6,D1
+            BGT N_SUB
+            JSR SR_SUB
+            BRA MAINLOOP
+            *THIS CODE SHOULD NOT BE ACCESSED IT IS BAD!
+
+            CMP.W #0,D1
             BEQ SR_SUB           * IF 000 then SUB.B 
             CMP.W #1,D1
             BEQ SR_SUB            * IF 001 then SUB.W -> < ea > V Dn -> Dn 
@@ -244,6 +270,7 @@ value1001   CMP.W #0,D1
             CMP.W #6,D1
             BEQ SR_SUB           * IF 110 then SUB.L -> Dn V < ea > -> < ea > 
             
+N_SUB:
             JSR SR_DATA
             BRA MAINLOOP 
 
@@ -268,11 +295,21 @@ value1100
             MOVE.W (A5),D1
             AND.W #$1C0,D1      * BITWISE AND TO CHECK IF = 111 = MULS  
             CMP.W #$1C0,D1        *CHECK FOR  MULS WORD
-            BNE SR_DATA
+            BNE N_MULS
             JSR SR_MULS
             BRA MAINLOOP
+N_MULS:
+            JSR SR_DATA
+            BRA MAINLOOP
             
-value1101   CMP.W #0,D1
+value1101   
+            CMP.W #6,D1
+            BGT N_ADD
+            JSR SR_ADD
+            BRA MAINLOOP
+            *THIS CODE SHOULD NOT BE ACCESSED IT IS BAD!
+
+            CMP.W #0,D1
             BEQ SR_ADD           * IF 000 then ADD.B 
             CMP.W #1,D1
             BEQ SR_ADD            * IF 001 then ADD.W -> < ea > V Dn -> Dn 
@@ -288,6 +325,8 @@ value1101   CMP.W #0,D1
             JSR N_ADD
             
 N_ADD:
+            BRA N_ADDA
+            *THIS CODE SHOULD NOT BE ACCESSED IT IS BAD!
             CMP.W #3,D1
             BEQ SR_ADDA            * IF 011 then ADD.B 
             CMP.W #7,D1
@@ -299,11 +338,15 @@ N_ADDA:
             BRA MAINLOOP                
             
                        
-value1110   MOVE.W (A5),D1
+value1110   
+            JSR SR_DATA
+            BRA MAINLOOP
+            *THIS CODE SHOULD NOT BE ACCESSED IT IS BAD!
+            MOVE.W (A5),D1
             AND.W #$8,D1                   *CHECK LSL/LSR
             BEQ LSL_LSR
-            JSR IS_ROL_ROR   
-            BRA MAINLOOP
+            BRA IS_ROL_ROR   
+            *BRA MAINLOOP
             
 LSL_LSR     AND.W #$100,D1
             BEQ SR_LSL
@@ -488,6 +531,7 @@ SR_NOP:
 *______________
 SR_MOVE:
     NOP *DO STUFF HERE
+    ADDA.W  #2,A5
     RTS      
  
  
@@ -495,6 +539,7 @@ SR_MOVE:
 *______________
 SR_MOVEA:
     NOP *DO STUFF HERE
+    ADDA.W  #2,A5
     RTS      
  
  
@@ -502,6 +547,7 @@ SR_MOVEA:
 *______________
 SR_MOVEM:
     NOP *DO STUFF HERE
+    ADDA.W  #2,A5
     RTS      
  
   
@@ -509,6 +555,7 @@ SR_MOVEM:
 *______________
 SR_ADD:
     NOP *DO STUFF HERE
+    ADDA.W  #2,A5
     RTS 
    
    
@@ -516,6 +563,7 @@ SR_ADD:
 *______________
 SR_ADDA:
     NOP *DO STUFF HERE
+    ADDA.W  #2,A5
     RTS   
     
     
@@ -523,6 +571,7 @@ SR_ADDA:
 *______________
 SR_SUB:
     NOP *DO STUFF HERE
+    ADDA.W  #2,A5
     RTS  
 
 
@@ -530,6 +579,7 @@ SR_SUB:
 *______________
 SR_SUBQ:
     NOP *DO STUFF HERE
+    ADDA.W  #2,A5
     RTS  
 
 
@@ -537,6 +587,7 @@ SR_SUBQ:
 *______________
 SR_CMP:
     NOP *DO STUFF HERE
+    ADDA.W  #2,A5
     RTS  
  
  
@@ -586,6 +637,8 @@ SR_CMPI_OUT
         MOVEA.L CMPI_SIZE(A4),A4
         JSR     (A4)
         
+        ADDA.W  #2,A5
+        
         RTS    
 
 
@@ -593,6 +646,7 @@ SR_CMPI_OUT
 *______________
 SR_MULS:
     NOP *DO STUFF HERE
+    ADDA.W  #2,A5
     RTS    
 
 
@@ -600,6 +654,7 @@ SR_MULS:
 *______________
 SR_DIVS:
     NOP *DO STUFF HERE
+    ADDA.W  #2,A5
     RTS  
 
 
@@ -607,6 +662,7 @@ SR_DIVS:
 *______________
 SR_LEA:
     NOP *DO STUFF HERE
+    ADDA.W  #2,A5
     RTS
 
 
@@ -670,6 +726,11 @@ SR_NEG_OUT:
     
     *MOVE ADDRESS POINTER TO NEXT OPWORD
     ADDA.W  #2,A5
+    *OUTPUT FINAL CR,LF
+    LEA STRHEXOUT,A1
+    MOVE.B  #14,D0
+    MOVE.L  #$0D0A0000,(A1)
+    TRAP    #15
     
     *RTS
     RTS  
@@ -679,6 +740,7 @@ SR_NEG_OUT:
 *______________
 SR_OR:
     NOP *DO STUFF HERE
+    ADDA.W  #2,A5
     RTS  
 
 *ORI SUBROUTINE
@@ -686,48 +748,55 @@ SR_OR:
 SR_ORI:
 ORI_SIZE    DC.L    SIZE_BYTE,SIZE_WORD,SIZE_LONG,SR_DATA
 ORI_EA      DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_LONG,EA_ABS_SHORT,SR_DATA,SR_DATA,SR_DATA
-        *READ OP WORD AND CONFIRM VALIDITY (Otherwise JMP to DATA and then RTS to main.)
-         MOVEA.L A5,A2
-         ADDA.W #1,A2
-         EOR.L D2,D2
-         MOVE.B (A2),D2
-         ANDI.B #$C0,D2
-         LSR.B  #4,D2
-         LEA SR_DATA, A3
-         CMPA.L ORI_SIZE(PC,D2),A3
-         BEQ    SR_DATA
-         BRA SR_ORI_OUT
-        ********************
-        *EA MODE CALCULATION
-        ******************
-         EOR.L   D3,D3
-         EOR.L   D4,D4
-         MOVE.B  (A2),D3 *Move OPWORD to D3
-         MOVE.B  D3,D4   *MOVE OPWORD to D4
-         ANDI.B  #$38,D3 * BITMASK TO FIND EA MODE
-         ANDI.B  #$07,D4 *BITMASK TO FIND REGISTER VALUE
+    *READ OP WORD AND CONFIRM VALIDITY (Otherwise JMP to DATA and then RTS to main.)
+    MOVEA.L A5,A2
+    ADDA.W #1,A2
+    EOR.L D2,D2
+    MOVE.B (A2),D2
+    ANDI.B #$C0,D2
+    LSR.B  #4,D2
+    LEA SR_DATA, A3
+    CMPA.L ORI_SIZE(PC,D2),A3
+    BEQ    SR_DATA
+    BRA SR_ORI_OUT
+    ********************
+    *EA MODE CALCULATION
+    ******************
+    EOR.L   D3,D3
+    EOR.L   D4,D4
+    MOVE.B  (A2),D3 *Move OPWORD to D3
+    MOVE.B  D3,D4   *MOVE OPWORD to D4
+    ANDI.B  #$38,D3 * BITMASK TO FIND EA MODE
+    ANDI.B  #$07,D4 *BITMASK TO FIND REGISTER VALUE
         
-        ******************
-        *PRINT OUT
-        ******************
+    ******************
+    *PRINT OUT
+    ******************
 SR_ORI_OUT        
-        MOVE.L  A5,D1
-        JSR     HEX_STRING_L
-        LEA     STRHEXOUT,A1
-        MOVE.B  #14,D0 *TRAP TASK 14, Output A1 with no Carriage Return or Line Feed
-        TRAP    #15
-        MOVE.L  #$094F5249,(A1) 
-        MOVEA.L A1,A2
-        ADDA.W  #4,A2
-        MOVE.B  #$0,(A2)
-        TRAP    #15
-        MOVE.L  D2,A4
-        MOVEA.L ORI_SIZE(A4),A4
-        JSR     (A4)
+    MOVE.L  A5,D1
+    JSR     HEX_STRING_L
+    LEA     STRHEXOUT,A1
+    MOVE.B  #14,D0 *TRAP TASK 14, Output A1 with no Carriage Return or Line Feed
+    TRAP    #15
+    MOVE.L  #$094F5249,(A1) 
+    MOVEA.L A1,A2
+    ADDA.W  #4,A2
+    MOVE.B  #$0,(A2)
+    TRAP    #15
+    MOVE.L  D2,A4
+    MOVEA.L ORI_SIZE(A4),A4
+    JSR     (A4)
         
-       **********
-       * GET EA TO PRINT OUT
-       **********
+    **********
+    * GET EA TO PRINT OUT
+    **********
+    *MOVE ADDRESS POINTER TO NEXT OPWORD
+    ADDA.W  #2,A5
+    *OUTPUT FINAL CR,LF
+    LEA STRHEXOUT,A1
+    MOVE.B  #14,D0
+    MOVE.L  #$0D0A0000,(A1)
+    TRAP    #15
 
     RTS 
     
@@ -736,6 +805,7 @@ SR_ORI_OUT
 *______________
 SR_EOR:
     NOP *DO STUFF HERE
+    ADDA.W  #2,A5
     RTS 
 
   
@@ -743,12 +813,14 @@ SR_EOR:
 *______________
 SR_LSR:
     NOP *DO STUFF HERE
+    ADDA.W  #2,A5
     RTS     
 
 *LSL SUBROUTINE
 *______________
 SR_LSL:
     NOP *DO STUFF HERE
+    ADDA.W  #2,A5
     RTS 
 
 
@@ -756,6 +828,7 @@ SR_LSL:
 *______________
 SR_ASR:
     NOP *DO STUFF HERE
+    ADDA.W  #2,A5
     RTS 
     
 
@@ -763,6 +836,7 @@ SR_ASR:
 *______________
 SR_ASL:
     NOP *DO STUFF HERE
+    ADDA.W  #2,A5
     RTS 
 
 
@@ -770,6 +844,7 @@ SR_ASL:
 *______________
 SR_ROL:
     NOP *DO STUFF HERE
+    ADDA.W  #2,A5
     RTS     
     
     
@@ -777,6 +852,7 @@ SR_ROL:
 *______________
 SR_ROR:
     NOP *DO STUFF HERE
+    ADDA.W  #2,A5
     RTS 
   
   
@@ -784,6 +860,7 @@ SR_ROR:
 *______________
 SR_BCS:
     NOP *DO STUFF HERE
+    ADDA.W  #2,A5
     RTS 
     
 
@@ -791,6 +868,7 @@ SR_BCS:
 *______________
 SR_BGE:
     NOP *DO STUFF HERE
+    ADDA.W  #2,A5
     RTS     
     
     
@@ -798,6 +876,7 @@ SR_BGE:
 *______________
 SR_BLT:
     NOP *DO STUFF HERE
+    ADDA.W  #2,A5
     RTS     
     
     
@@ -805,6 +884,7 @@ SR_BLT:
 *______________
 SR_BVC:
     NOP *DO STUFF HERE
+    ADDA.W  #2,A5
     RTS 
   
   
@@ -812,6 +892,7 @@ SR_BVC:
 *______________
 SR_BCLR:
     NOP *DO STUFF HERE
+    ADDA.W  #2,A5
     RTS     
     
     
@@ -819,6 +900,7 @@ SR_BCLR:
 *______________
 SR_BRA:
     NOP *DO STUFF HERE
+    ADDA.W  #2,A5
     RTS    
     
     
@@ -826,6 +908,7 @@ SR_BRA:
 *______________
 SR_JSR:
     NOP *DO STUFF HERE
+    ADDA.W  #2,A5
     RTS 
     
     
@@ -976,6 +1059,7 @@ M_HOLD              DC.B    'Press Enter to scroll',0
 *~Font size~10~
 *~Tab type~1~
 *~Tab size~4~
+
 
 
 *~Font name~Courier New~

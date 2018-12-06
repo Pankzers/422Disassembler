@@ -646,10 +646,10 @@ SR_CMPI_OUT
         LEA     STRHEXOUT,A1
         MOVE.B  #14,D0 *TRAP TASK 14, Output A1 with no Carriage Return or Line Feed
         TRAP    #15
-        MOVE.L  #$434D5049,(A1) *MISSING TAB BECAUSE OVER 32 BITS!
+        MOVE.L  #$09434D50,(A1) *MISSING TAB BECAUSE OVER 32 BITS!
         MOVEA.L A1,A2
         ADDA.W  #4,A2
-        MOVE.B  #$0,(A2)
+        MOVE.W  #$4900,(A2)
         TRAP    #15
         MOVE.L  D2,A4
         MOVEA.L CMPI_SIZE(A4),A4
@@ -737,6 +737,10 @@ SR_NEG_OUT:
     TRAP    #15
     MOVE.L  D2,A4
     MOVEA.L NEG_SIZE(A4),A4
+    JSR     (A4)
+    MOVE.L  D3,A4
+    MOVEA.L NEG_EA(A4),A4
+    EOR.L   D5,D5
     JSR     (A4)
     
     *BRANCH FOR <EA> MODE AND OUTPUT ARGUMENTS
@@ -1019,8 +1023,35 @@ size_word:
             TRAP    #15
             RTS
 
-
+*EFFECTIVE ADDRESSING MODE FOR DATA REGISTER DIRECT
+*USES VALUE IN D5 TO CHOOSE 1ST or 2ND ARGUMENT, AND D6 TO OUTPUT COMMA AFTER.
 EA_DATA:
+    LEA STRHEXOUT,A1
+    MOVE.W  (A5),D2
+    CMP.B   #1,D5
+    BEQ EA_DATA_2ND
+    AND.W   #$0007,D2
+    BRA EA_DATA_2
+EA_DATA_2ND:
+    AND.W   #$0E00,D2
+    MOVE.B  #9,D1
+    LSR.W   D1,D2
+
+EA_DATA_2:
+    MOVE.B  #$44,(A1)+
+    *ADDA.W  #2,A1
+    ADD.B   #$30,D2
+    MOVE.B  D2,(A1)+
+    *ADDA.W  #2,A1
+    CMP.B   #1,D6
+    BNE     EA_DATA_NOCOMMA
+    MOVE.B  #$2C,(A1)+
+EA_DATA_NOCOMMA
+    MOVE.B  #0,(A1)
+    MOVE.B  #14,D0
+    LEA     STRHEXOUT,A1
+    TRAP    #15
+    
     RTS
 EA_ADDR:
     RTS
@@ -1051,8 +1082,9 @@ EXIT:
     
 *CONSTANTS AND PARAMETERS
 *________________________
-CR       EQU    $0D
-LF       EQU    $0A
+CR      EQU    $0D
+LF      EQU    $0A
+ASCII   DC.B    $30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$41,$42,$43,$44,$45,$46
 LONGNIBBLEMASK      DC.L    $F0000000
 M_INPSTARTRANGE     DC.B    'Enter Start Range of Memory',CR,LF,0
 M_INPENDRANGE       DC.B    'Enter End Range of Memory',CR,LF,0
@@ -1077,6 +1109,7 @@ M_HOLD              DC.B    'Press Enter to scroll',0
 *~Font size~10~
 *~Tab type~1~
 *~Tab size~4~
+
 
 
 

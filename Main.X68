@@ -109,17 +109,32 @@ N_BCLR:
 
   
          
-value0001
-            JSR SR_DATA
+value0001   MOVE.L (A5),D1
+            JSR SR_MOVE                     *INSTRUCTION = MOVE.B
             BRA MAINLOOP
             
-value0010
-            JSR SR_DATA
+value0010   MOVE.L (A5),D1
+            AND.W #$40,D1
+            CMP.W #$40,D1
+            BNE N_MOVEA
+            JSR SR_MOVEA                     *INSTRUCTION IS EITHER MOVE.L OR MOVEA.L
+            BRA MAINLOOP
+
+N_MOVEA     JSR SR_MOVE
+            BRA MAINLOOP
+
+   
+value0011   MOVE.L (A5),D1
+            AND.W #$40,D1
+            CMP.W #$40,D1
+            BNE N_MOVEA_2                   *INSTRUCTION IS MOVE.W OR MOVEA.W
+            JSR SR_MOVEA
             BRA MAINLOOP
             
-value0011
-            JSR SR_DATA
+N_MOVEA_2   JSR SR_MOVE
             BRA MAINLOOP
+
+
             
 value0100   CMP.W #$4E71,(A5)   *Check for NOP OPWORD
             BNE N_NOP

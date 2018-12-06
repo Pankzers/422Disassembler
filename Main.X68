@@ -1054,7 +1054,34 @@ EA_DATA_NOCOMMA
     
     RTS
 EA_ADDR:
+    LEA STRHEXOUT,A1
+    MOVE.W  (A5),D2
+    CMP.B   #1,D5
+    BEQ EA_ADDR_2ND
+    AND.W   #$0007,D2
+    BRA EA_ADDR_2
+EA_ADDR_2ND:
+    AND.W   #$0E00,D2
+    MOVE.B  #9,D1
+    LSR.W   D1,D2
+
+EA_ADDR_2:
+    MOVE.B  #$44,(A1)+
+    *ADDA.W  #2,A1
+    ADD.B   #$30,D2
+    MOVE.B  D2,(A1)+
+    *ADDA.W  #2,A1
+    CMP.B   #1,D6
+    BNE     EA_ADDR_NOCOMMA
+    MOVE.B  #$2C,(A1)+
+EA_ADDR_NOCOMMA
+    MOVE.B  #0,(A1)
+    MOVE.B  #14,D0
+    LEA     STRHEXOUT,A1
+    TRAP    #15
+    
     RTS
+
 EA_ADDRIND:
     RTS
 EA_ADDRIND_PINC:

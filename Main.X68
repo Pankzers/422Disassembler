@@ -145,8 +145,8 @@ N_NEG:      EOR.L D1,D1
             MOVE.W (A5),D1
             AND.W #$1C0,D1      * BITWISE AND TO CHECK IF = 111 = LEA  
             CMP.W #$1C0,D1        *CHECK FOR  LEA WORD
-            BEQ SR_LEA
-            JSR N_LEA
+            BNE N_LEA
+            JSR SR_LEA
             BRA MAINLOOP
                        
 N_LEA:      EOR.L D1,D1

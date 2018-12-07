@@ -254,24 +254,23 @@ value1000
             
 
 N_DIVS:     
-           CMP.W #6,D1
+            CMP.W #6,D1
             BGT N_OR
             JSR SR_OR
             BRA MAINLOOP
             *THIS CODE SHOULD NOT BE ACCESSED IT IS BAD!
             CMP.W #0,D1
-            BEQ SR_OR           * IF 000 then OR.B 
+            BEQ SR_SUB           * IF 000 then OR.B 
             CMP.W #1,D1
-            BEQ SR_OR            * IF 001 then OR.W -> < ea > V Dn -> Dn 
+            BEQ SR_SUB            * IF 001 then OR.W -> < ea > V Dn -> Dn 
             CMP.W #2,D1
-            BEQ SR_OR           * IF 010 then OR.L -> < ea > V Dn -> Dn 
+            BEQ SR_SUB           * IF 010 then OR.L -> < ea > V Dn -> Dn 
             CMP.W #4,D1
-            BEQ SR_OR           * IF 100 then OR.B -> Dn V < ea > -> < ea > 
+            BEQ SR_SUB           * IF 100 then OR.B -> Dn V < ea > -> < ea > 
             CMP.W #5,D1
-            BEQ SR_OR           * IF 101 then OR.W -> Dn V < ea > -> < ea > 
+            BEQ SR_SUB           * IF 101 then OR.W -> Dn V < ea > -> < ea > 
             CMP.W #6,D1
-            BEQ SR_OR           * IF 110 then OR.L -> Dn V < ea > -> < ea > 
-
+            BEQ SR_SUB           * IF 110 then OR.L -> Dn V < ea > -> < ea > 
             
 N_OR:            
             JSR SR_DATA
@@ -1145,53 +1144,62 @@ SR_DIVS_OUT
 *LEA SUBROUTINE
 *______________
 SR_LEA:
-LEA_SIZE    DC.L    SIZE_BYTE,SIZE_WORD,SIZE_LONG,SR_DATA
-LEA_EA      DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_LONG,EA_ABS_SHORT,SR_DATA,SR_DATA,SR_DATA
-        *READ OP WORD AND CONFIRM VALIDITY (Otherwise JMP to DATA and then RTS to main.)
-         MOVEA.L A5,A2
-         ADDA.W #1,A2
-         EOR.L D2,D2
-         MOVE.B (A2),D2
-         ANDI.B #$C0,D2                       
-         LSR.B  #4,D2
-         LEA SR_DATA, A3
-         CMPA.L LEA_SIZE(PC,D2),A3
-         BEQ    SR_DATA
-        
-         
-        
-        ******************
-        *EA MODE CALCULATION
-        ******************
-         EOR.L   D3,D3
-         EOR.L   D4,D4
-         MOVE.B  (A2),D3 *Move OPWORD to D3
-         MOVE.B  D3,D4   *MOVE OPWORD to D4
-         ANDI.B  #$38,D3 * BITMASK TO FIND EA MODE
-         ANDI.B  #$07,D4 *BITMASK TO FIND REGISTER VALUE
-         BRA SR_LEA_OUT
-        ******************
-        *PRINT OUT
-        ******************
+LEA_EA   DC.L    SR_DATA,SR_DATA,EA_ADDRIND,SR_DATA,SR_DATA,SR_DATA,SR_DATA,EA_ABS_LONG,EA_ABS_SHORT,SR_DATA,SR_DATA,SR_DATA
+     
+    *NOT SURE ABOUT LAST 2 NAMES ON LIST!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    
+    
+    *READ OP WORD AND CONFIRM VALIDITY (Otherwise JMP to DATA and then RTS to main.)
+    MOVEA.L A5,A2
+    ADDA.W #1,A2
+    EOR.L D2,D2
+    MOVE.B (A2),D2
+    ANDI.B #$38,D2                     *VALIDATING FOR EAMODE BITS 
+   * LSR.B  #4,D2
+    LEA SR_DATA, A3
+    CMPA.L LEA_EA(PC,D2),A3
+    BEQ    SR_DATA
+    ***BRA SR_LEA_OUT                  MOVED THIS UNDER EA CALCULATIONS ????
+    ********************
+    *EA MODE CALCULATION
+    ******************
+    EOR.L   D3,D3
+    EOR.L   D4,D4
+    MOVE.B  (A2),D3 *Move OPWORD to D3
+    MOVE.B  D3,D4   *MOVE OPWORD to D4
+    ANDI.B  #$38,D3 *BITMASK TO FIND EA MODE
+    ANDI.B  #$07,D4 *BITMASK TO FIND REGISTER VALUE
+    BRA SR_LEA_OUT    
+    ******************
+    *PRINT OUT
+    ******************
 SR_LEA_OUT        
-        MOVE.L  A5,D1
-        JSR     HEX_STRING_L
-        LEA     STRHEXOUT,A1
-        MOVE.B  #14,D0 *TRAP TASK 14, Output A1 with no Carriage Return or Line Feed
-        TRAP    #15
-        MOVE.L  #$094C4541,(A1) 
-        MOVEA.L A1,A2
-        ADDA.W  #4,A2
-        MOVE.W  #$4900,(A2)
-        TRAP    #15
-        MOVE.L  D2,A4
-        MOVEA.L LEA_SIZE(A4),A4
-        JSR     (A4)
+    MOVE.L  A5,D1
+    JSR     HEX_STRING_L
+    LEA     STRHEXOUT,A1
+    MOVE.B  #14,D0 *TRAP TASK 14, Output A1 with no Carriage Return or Line Feed
+    TRAP    #15
+    MOVE.L  #$094C4541,(A1) 
+    MOVEA.L A1,A2
+    ADDA.W  #4,A2
+    MOVE.B  #$0,(A2)
+    TRAP    #15
+    MOVE.L  D2,A4
+    MOVEA.L LEA_EA(A4),A4
+    JSR     (A4)
         
-        ADDA.W  #2,A5
-        
-        RTS    
+    ************************
+    * GET EA TO PRINT OUT
+    ************************
+    *MOVE ADDRESS POINTER TO NEXT OPWORD
+    ADDA.W  #2,A5
+    *OUTPUT FINAL CR,LF
+    LEA STRHEXOUT,A1
+    MOVE.B  #14,D0
+    MOVE.L  #$0D0A0000,(A1)
+    TRAP    #15
 
+    RTS 
 
 *NEG SUBROUTINE
 *______________
@@ -1931,21 +1939,25 @@ SR_BRA_OUT
   
     
     
-*JSR SUBROUTINE
+*JSR SUBROUTINE                              *NOT SURE IF THIS IS RIGHT 
 *______________
 SR_JSR:
-JSR_EA      DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_LONG,EA_ABS_SHORT,SR_DATA,SR_DATA,SR_DATA
+JSR_EA      DC.L    SR_DATA,SR_DATA,EA_ADDRIND,SR_DATA,SR_DATA,SR_DATA,SR_DATA,EA_ABS_LONG,EA_ABS_SHORT,SR_DATA,SR_DATA,SR_DATA 
+     
+    *NOT SURE ABOUT LAST 2 NAMES ON LIST!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    
+    
     *READ OP WORD AND CONFIRM VALIDITY (Otherwise JMP to DATA and then RTS to main.)
     MOVEA.L A5,A2
     ADDA.W #1,A2
     EOR.L D2,D2
     MOVE.B (A2),D2
-    ANDI.B #$C0,D2                     *VALIDATION NEEDS UPDATE
-    LSR.B  #4,D2
+    ANDI.B #$38,D2                     *VALIDATING FOR EAMODE BITS 
+   * LSR.B  #4,D2
     LEA SR_DATA, A3
     CMPA.L JSR_EA(PC,D2),A3
     BEQ    SR_DATA
-    BRA SR_JSR_OUT
+    ***BRA SR_JSR_OUT         MOVED THIS UNDER EA CALCULATIONS ????
     ********************
     *EA MODE CALCULATION
     ******************
@@ -1955,7 +1967,7 @@ JSR_EA      DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,S
     MOVE.B  D3,D4   *MOVE OPWORD to D4
     ANDI.B  #$38,D3 *BITMASK TO FIND EA MODE
     ANDI.B  #$07,D4 *BITMASK TO FIND REGISTER VALUE
-        
+    BRA SR_JSR_OUT    
     ******************
     *PRINT OUT
     ******************
@@ -2148,8 +2160,8 @@ EA_ABS_SHORT:
     RTS
 EA_IMM:
     RTS
+    
             
-
    
 *EXIT
 *____

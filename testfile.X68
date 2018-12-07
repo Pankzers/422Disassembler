@@ -44,7 +44,12 @@ START:                  ; first instruction of program
     NEG.L (A2)
     NEG.L -(A2)
     NEG.L (A2)+
+    NEG.L $4000
+    NEG.L $00FF5000
+    NEG.W $3000
+    
     NEG.B D2
+    
 * EOR
     EOR.L #$FFFFFFFF,D2
     EOR.L #$0000,D2
@@ -184,6 +189,7 @@ SUB:
 * Put variables and constants here
 END:
     END    START        ; last line of source
+
 
 
 

@@ -165,14 +165,14 @@ N_RTS:
 N_NEG:      EOR.L D1,D1
             MOVE.W (A5),D1
             AND.W #$1C0,D1        * BITWISE AND TO CHECK IF = 111 = LEA  
-            CMP.W #$1C0,D1        *CHECK FOR  LEA WORD
+            CMP.W #$1C0,D1        * CHECK FOR  LEA WORD
             BNE N_LEA
             JSR SR_LEA
             BRA MAINLOOP
                        
 N_LEA:      EOR.L D1,D1
             MOVE.W (A5),D1
-            CMP.W #$E80,(A5)    *Check for JSR OPWORD.
+            CMP.W #$E80,(A5)     *Check for JSR OPWORD.
             BNE N_JSR
             JSR SR_JSR
             BRA MAINLOOP
@@ -201,47 +201,19 @@ N_SUBQ:
             
 value0110   EOR.L D1,D1
             MOVE.W (A5),D1
-            CMP.W #$0000,(A5)    *Check for BCS OPWORD. CHANGE HEX!
-            BNE N_BCS
-            JSR SR_BCS
-            BRA MAINLOOP
-            
-N_BCS:      EOR.L D1,D1
-            MOVE.W (A5),D1
-            CMP.W #$0000,(A5)      *Check for BGE OPWORD. CHANGE HEX!
-            BNE N_BGE
-            JSR SR_BGE
-            BRA MAINLOOP    
+            CMP.W #$0000,(A5)       *Check for BCC OPWORD. CHANGE HEX!
+            BNE N_BCC
+            JSR SR_BCC
+            BRA MAINLOOP                   
 
-N_BGE:      EOR.L D1,D1
-            MOVE.W (A5),D1
-            CMP.W #$0000,(A5)      *Check for BLT OPWORD. CHANGE HEX!
-            BNE N_BLT
-            JSR SR_BLT
-            BRA MAINLOOP    
-
-N_BLT:      EOR.L D1,D1
-            MOVE.W (A5),D1
-            CMP.W #$0000,(A5)      *Check for BVC OPWORD. CHANGE HEX!
-            BNE N_BVC
-            JSR SR_BVC
-            BRA MAINLOOP   
-
-N_BVC:      EOR.L D1,D1
-            MOVE.W (A5),D1
-            CMP.W #$0000,(A5)      *Check for BRA OPWORD. CHANGE HEX!
-            BNE N_BRA
-            JSR SR_BRA
-            BRA MAINLOOP 
-
-N_BRA:      
-            *CMP.W #$0000,(A5)    
-            BNE N_BRA_02            *not sure where to branch with last opword
+N_BCC:      
+            *CMP.W #$0000,(A5)          
+            BNE N_BCC_02             *CHECKS IF BRA OPWORD
             JSR SR_BRA
             BRA MAINLOOP
-N_BRA_02:
+N_BCC_02:
                 
-            JSR SR_DATA            *not sure where to branch with last opword
+            JSR SR_DATA            
             BRA MAINLOOP          
             
             
@@ -1153,10 +1125,7 @@ SR_DIVS_OUT
 *______________
 SR_LEA:
 LEA_EA   DC.L    SR_DATA,SR_DATA,EA_ADDRIND,SR_DATA,SR_DATA,SR_DATA,SR_DATA,EA_ABS_LONG,EA_ABS_SHORT,SR_DATA,SR_DATA,SR_DATA
-     
-    *NOT SURE ABOUT LAST 2 NAMES ON LIST!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    
-    
+        
     *READ OP WORD AND CONFIRM VALIDITY (Otherwise JMP to DATA and then RTS to main.)
     MOVEA.L A5,A2
     ADDA.W #1,A2
@@ -1238,12 +1207,12 @@ NEG_EA      DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,S
     BNE     SR_NEG_NOT_111
     *MOVE.B  D4,D5
     *LSL.B   #2,D5
-    ADD.B   D4,D3
+    ADD.B   D4,D3            *GOES TO RIGHT SIDE OF TABLE (HAVE TO ADD REGISTERS TO MODE)
     CMPA.L  NEG_EA(PC,D3),A3
     BEQ     SR_DATA
     BRA     SR_NEG_OUT
 SR_NEG_NOT_111:
-    CMPA.L  NEG_EA(PC,D3),A3
+    CMPA.L  NEG_EA(PC,D3),A3  *LEFT SIDE OF TABLE   (REGISTER VALUE IS REGISTER NUMBER)
     BEQ     SR_DATA
 SR_NEG_OUT:
         
@@ -1256,15 +1225,15 @@ SR_NEG_OUT:
     MOVE.L  #$094E4547,(A1)
     MOVEA.L A1,A2
     ADDA.W  #4,A2
-    MOVE.B  #$0,(A2)
+    MOVE.B  #$0,(A2)   *ADD FOR NULL TERMINATION 
     *MOVE.B  #13,D0
-    TRAP    #15
+    TRAP    #15         *OUTPUT ASCII 
     MOVE.L  D2,A4
     MOVEA.L NEG_SIZE(A4),A4
     JSR     (A4)
     MOVE.L  D3,A4
     MOVEA.L NEG_EA(A4),A4
-    EOR.L   D5,D5
+    EOR.L   D5,D5    *if we wanted a comma (if we had 2 arguments, insert 1 into D5 after EOR) 
     JSR     (A4)
     
     *BRANCH FOR <EA> MODE AND OUTPUT ARGUMENTS
@@ -1275,7 +1244,7 @@ SR_NEG_OUT:
     *OUTPUT FINAL CR,LF
     LEA STRHEXOUT,A1
     MOVE.B  #14,D0
-    MOVE.L  #$0D0A0000,(A1)
+    MOVE.L  #$0D0A0000,(A1)   *ASCII for CR,LF,0
     TRAP    #15
     
     *RTS
@@ -1807,32 +1776,8 @@ SR_ROR_OUT
   
 *BCS SUBROUTINE
 *______________
-SR_BCS:
-    NOP *DO STUFF HERE
-    ADDA.W  #2,A5
-    RTS 
-    
-
-*BGE SUBROUTINE
-*______________
-SR_BGE:
-    NOP *DO STUFF HERE
-    ADDA.W  #2,A5
-    RTS     
-    
-    
-*BLT SUBROUTINE
-*______________
-SR_BLT:
-    NOP *DO STUFF HERE
-    ADDA.W  #2,A5
-    RTS     
-    
-    
-*BVC SUBROUTINE
-*______________
-SR_BVC:
-    NOP *DO STUFF HERE
+SR_BCC:                    
+    NOP                                *DO STUFF HERE
     ADDA.W  #2,A5
     RTS 
   
@@ -1950,10 +1895,7 @@ SR_BRA_OUT
 *JSR SUBROUTINE                              *NOT SURE IF THIS IS RIGHT 
 *______________
 SR_JSR:
-JSR_EA      DC.L    SR_DATA,SR_DATA,EA_ADDRIND,SR_DATA,SR_DATA,SR_DATA,SR_DATA,EA_ABS_SHORT,EA_ABS_LONG,SR_DATA,SR_DATA,SR_DATA 
-     
-    *NOT SURE ABOUT LAST 2 NAMES ON LIST!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    
+JSR_EA      DC.L    SR_DATA,SR_DATA,EA_ADDRIND,SR_DATA,SR_DATA,SR_DATA,SR_DATA,EA_ABS_SHORT,EA_ABS_LONG,SR_DATA,SR_DATA,SR_DATA    
     
     *READ OP WORD AND CONFIRM VALIDITY (Otherwise JMP to DATA and then RTS to main.)
     MOVEA.L A5,A2
@@ -1961,11 +1903,11 @@ JSR_EA      DC.L    SR_DATA,SR_DATA,EA_ADDRIND,SR_DATA,SR_DATA,SR_DATA,SR_DATA,E
     EOR.L D2,D2
     MOVE.B (A2),D2
     ANDI.B #$38,D2                     *VALIDATING FOR EAMODE BITS 
-   * LSR.B  #4,D2
+    LSR.B  #1,D2
     LEA SR_DATA, A3
     CMPA.L JSR_EA(PC,D2),A3
     BEQ    SR_DATA
-    ***BRA SR_JSR_OUT         MOVED THIS UNDER EA CALCULATIONS ????
+    BRA SR_JSR_OUT                   MOVED THIS UNDER EA CALCULATIONS
     ********************
     *EA MODE CALCULATION
     ******************
@@ -1975,7 +1917,7 @@ JSR_EA      DC.L    SR_DATA,SR_DATA,EA_ADDRIND,SR_DATA,SR_DATA,SR_DATA,SR_DATA,E
     MOVE.B  D3,D4   *MOVE OPWORD to D4
     ANDI.B  #$38,D3 *BITMASK TO FIND EA MODE
     ANDI.B  #$07,D4 *BITMASK TO FIND REGISTER VALUE
-    BRA SR_JSR_OUT    
+    *BRA SR_JSR_OUT    
     ******************
     *PRINT OUT
     ******************

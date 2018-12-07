@@ -160,14 +160,14 @@ N_RTS:
 N_NEG:      EOR.L D1,D1
             MOVE.W (A5),D1
             AND.W #$1C0,D1        * BITWISE AND TO CHECK IF = 111 = LEA  
-            CMP.W #$1C0,D1        *CHECK FOR  LEA WORD
+            CMP.W #$1C0,D1        * CHECK FOR  LEA WORD
             BNE N_LEA
             JSR SR_LEA
             BRA MAINLOOP
                        
 N_LEA:      EOR.L D1,D1
             MOVE.W (A5),D1
-            CMP.W #$E80,(A5)    *Check for JSR OPWORD.
+            CMP.W #$E80,(A5)     *Check for JSR OPWORD.
             BNE N_JSR
             JSR SR_JSR
             BRA MAINLOOP
@@ -196,47 +196,19 @@ N_SUBQ:
             
 value0110   EOR.L D1,D1
             MOVE.W (A5),D1
-            CMP.W #$0000,(A5)    *Check for BCS OPWORD. CHANGE HEX!
-            BNE N_BCS
-            JSR SR_BCS
-            BRA MAINLOOP
-            
-N_BCS:      EOR.L D1,D1
-            MOVE.W (A5),D1
-            CMP.W #$0000,(A5)      *Check for BGE OPWORD. CHANGE HEX!
-            BNE N_BGE
-            JSR SR_BGE
-            BRA MAINLOOP    
+            CMP.W #$0000,(A5)       *Check for BCC OPWORD. CHANGE HEX!
+            BNE N_BCC
+            JSR SR_BCC
+            BRA MAINLOOP                   
 
-N_BGE:      EOR.L D1,D1
-            MOVE.W (A5),D1
-            CMP.W #$0000,(A5)      *Check for BLT OPWORD. CHANGE HEX!
-            BNE N_BLT
-            JSR SR_BLT
-            BRA MAINLOOP    
-
-N_BLT:      EOR.L D1,D1
-            MOVE.W (A5),D1
-            CMP.W #$0000,(A5)      *Check for BVC OPWORD. CHANGE HEX!
-            BNE N_BVC
-            JSR SR_BVC
-            BRA MAINLOOP   
-
-N_BVC:      EOR.L D1,D1
-            MOVE.W (A5),D1
-            CMP.W #$0000,(A5)      *Check for BRA OPWORD. CHANGE HEX!
-            BNE N_BRA
-            JSR SR_BRA
-            BRA MAINLOOP 
-
-N_BRA:      
-            *CMP.W #$0000,(A5)    
-            BNE N_BRA_02            *not sure where to branch with last opword
+N_BCC:      
+            *CMP.W #$0000,(A5)          
+            BNE N_BCC_02             *CHECKS IF BRA OPWORD
             JSR SR_BRA
             BRA MAINLOOP
-N_BRA_02:
+N_BCC_02:
                 
-            JSR SR_DATA            *not sure where to branch with last opword
+            JSR SR_DATA            
             BRA MAINLOOP          
             
             
@@ -1799,32 +1771,8 @@ SR_ROR_OUT
   
 *BCS SUBROUTINE
 *______________
-SR_BCS:
-    NOP *DO STUFF HERE
-    ADDA.W  #2,A5
-    RTS 
-    
-
-*BGE SUBROUTINE
-*______________
-SR_BGE:
-    NOP *DO STUFF HERE
-    ADDA.W  #2,A5
-    RTS     
-    
-    
-*BLT SUBROUTINE
-*______________
-SR_BLT:
-    NOP *DO STUFF HERE
-    ADDA.W  #2,A5
-    RTS     
-    
-    
-*BVC SUBROUTINE
-*______________
-SR_BVC:
-    NOP *DO STUFF HERE
+SR_BCC:                    
+    NOP                                *DO STUFF HERE
     ADDA.W  #2,A5
     RTS 
   

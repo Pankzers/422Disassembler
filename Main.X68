@@ -689,7 +689,7 @@ SR_LEA:
 SR_NEG:
     *DEFINE RELEVANT LISTS
 NEG_SIZE    DC.L    SIZE_BYTE,SIZE_WORD,SIZE_LONG,SR_DATA
-NEG_EA      DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_LONG,EA_ABS_SHORT,SR_DATA,SR_DATA,SR_DATA
+NEG_EA      DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_SHORT,EA_ABS_LONG,SR_DATA,SR_DATA,SR_DATA
     *READ OP WORD AND CONFIRM VALIDITY (Otherwise JMP to DATA and then RTS to main.)
     MOVEA.L A5,A2
     ADDA.W  #1,A2
@@ -708,6 +708,7 @@ NEG_EA      DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,S
     ANDI.B  #$38,D3 *Bitmask EA Mode
     ANDI.B  #$07,D4 *Bitmask EA Register
     LSR.B   #1,D3
+    LSL.B   #2,D4
     
     CMP.B   #$1C,D3
     BNE     SR_NEG_NOT_111
@@ -735,6 +736,9 @@ SR_NEG_OUT:
     MOVE.B  #$0,(A2)
     *MOVE.B  #13,D0
     TRAP    #15
+    EOR.L   D1,D1
+    MOVE.W  (A5),D1
+    ADDA.W  #2,A5
     MOVE.L  D2,A4
     MOVEA.L NEG_SIZE(A4),A4
     JSR     (A4)
@@ -746,8 +750,8 @@ SR_NEG_OUT:
     *BRANCH FOR <EA> MODE AND OUTPUT ARGUMENTS
         *No branching is necessary as there are no arguments for NOP
     
-    *MOVE ADDRESS POINTER TO NEXT OPWORD
-    ADDA.W  #2,A5
+    *MOVE ADDRESS POINTER TO NEXT OPWORD IF 
+    *ADDA.W  #2,A5
     *OUTPUT FINAL CR,LF
     LEA STRHEXOUT,A1
     MOVE.B  #14,D0
@@ -1026,22 +1030,23 @@ size_word:
 *EFFECTIVE ADDRESSING MODE FOR DATA REGISTER DIRECT
 *USES VALUE IN D5 TO CHOOSE 1ST or 2ND ARGUMENT, AND D6 TO OUTPUT COMMA AFTER.
 EA_DATA:
+    MOVEM.L D0-A6,-(sp)
     LEA STRHEXOUT,A1
-    MOVE.W  (A5),D2
+    *MOVE.W  (A5),D2
     CMP.B   #1,D5
     BEQ EA_DATA_2ND
-    AND.W   #$0007,D2
+    AND.W   #$0007,D1
     BRA EA_DATA_2
 EA_DATA_2ND:
-    AND.W   #$0E00,D2
-    MOVE.B  #9,D1
-    LSR.W   D1,D2
+    AND.W   #$0E00,D1
+    MOVE.B  #9,D0
+    LSR.W   D0,D1
 
 EA_DATA_2:
     MOVE.B  #$44,(A1)+
     *ADDA.W  #2,A1
-    ADD.B   #$30,D2
-    MOVE.B  D2,(A1)+
+    ADD.B   #$30,D1
+    MOVE.B  D1,(A1)+
     *ADDA.W  #2,A1
     CMP.B   #1,D6
     BNE     EA_DATA_NOCOMMA
@@ -1051,25 +1056,27 @@ EA_DATA_NOCOMMA
     MOVE.B  #14,D0
     LEA     STRHEXOUT,A1
     TRAP    #15
+    MOVEM.L (sp)+,D0-A6
     
     RTS
 EA_ADDR:
+    MOVEM.L D0-A6,-(sp)
     LEA STRHEXOUT,A1
-    MOVE.W  (A5),D2
+    *MOVE.W  (A5),D2
     CMP.B   #1,D5
     BEQ EA_ADDR_2ND
-    AND.W   #$0007,D2
+    AND.W   #$0007,D1
     BRA EA_ADDR_2
 EA_ADDR_2ND:
-    AND.W   #$0E00,D2
-    MOVE.B  #9,D1
-    LSR.W   D1,D2
+    AND.W   #$0E00,D1
+    MOVE.B  #9,D0
+    LSR.W   D0,D1
 
 EA_ADDR_2:
     MOVE.B  #$44,(A1)+
     *ADDA.W  #2,A1
-    ADD.B   #$30,D2
-    MOVE.B  D2,(A1)+
+    ADD.B   #$30,D1
+    MOVE.B  D1,(A1)+
     *ADDA.W  #2,A1
     CMP.B   #1,D6
     BNE     EA_ADDR_NOCOMMA
@@ -1079,18 +1086,140 @@ EA_ADDR_NOCOMMA
     MOVE.B  #14,D0
     LEA     STRHEXOUT,A1
     TRAP    #15
-    
+    MOVEM.L (sp)+,D0-A6
     RTS
 
 EA_ADDRIND:
+    MOVEM.L D0-A6,-(sp)
+    LEA STRHEXOUT,A1
+    *MOVE.W  (A5),D2
+    CMP.B   #1,D5
+    BEQ EA_ADDRIND_2ND
+    AND.W   #$0007,D1
+    BRA EA_ADDRIND_2
+EA_ADDRIND_2ND:
+    AND.W   #$0E00,D1
+    MOVE.B  #9,D0
+    LSR.W   D0,D1
+
+EA_ADDRIND_2:
+    MOVE.L  #$28410029,(A1)
+    ADDA.W  #2,A1
+    ADD.B   #$30,D1
+    MOVE.B  D1,(A1)
+    ADDA.W  #2,A1
+    CMP.B   #1,D6
+    BNE     EA_ADDRIND_NOCOMMA
+    MOVE.B  #$2C,(A1)+
+EA_ADDRIND_NOCOMMA
+    MOVE.B  #0,(A1)
+    MOVE.B  #14,D0
+    LEA     STRHEXOUT,A1
+    TRAP    #15
+    MOVEM.L (sp)+,D0-A6
     RTS
+
 EA_ADDRIND_PINC:
+    MOVEM.L D0-A6,-(sp)
+    LEA STRHEXOUT,A1
+    *MOVE.W  (A5),D2
+    CMP.B   #1,D5
+    BEQ EA_ADDRIND_PINC_2ND
+    AND.W   #$0007,D1
+    BRA EA_ADDRIND_PINC_2
+EA_ADDRIND_PINC_2ND:
+    AND.W   #$0E00,D1
+    MOVE.B  #9,D0
+    LSR.W   D0,D1
+
+EA_ADDRIND_PINC_2:
+    MOVE.L  #$28410029,(A1)
+    ADDA.W  #2,A1
+    ADD.B   #$30,D1
+    MOVE.B  D1,(A1)
+    ADDA.W  #2,A1
+    MOVE.B  #$2B,(A1)+
+    CMP.B   #1,D6
+    BNE     EA_ADDRIND_PINC_NOCOMMA
+    MOVE.B  #$2C,(A1)+
+EA_ADDRIND_PINC_NOCOMMA
+    MOVE.B  #0,(A1)
+    MOVE.B  #14,D0
+    LEA     STRHEXOUT,A1
+    TRAP    #15
+    MOVEM.L (sp)+,D0-A6
     RTS
+
 EA_ADDRIND_PDEC:
+    MOVEM.L D0-A6,-(sp)
+    LEA STRHEXOUT,A1
+    *MOVE.W  (A5),D2
+    CMP.B   #1,D5
+    BEQ EA_ADDRIND_PDEC_2ND
+    AND.W   #$0007,D1
+    BRA EA_ADDRIND_PDEC_2
+EA_ADDRIND_PDEC_2ND:
+    AND.W   #$0E00,D1
+    MOVE.B  #9,D0
+    LSR.W   D0,D1
+
+EA_ADDRIND_PDEC_2:
+    MOVE.L  #$2D284100,(A1)
+    ADDA.W  #3,A1
+    ADD.B   #$30,D1
+    MOVE.B  D1,(A1)+
+    *ADDA.W  #2,A1
+    MOVE.B  #$29,(A1)+
+    CMP.B   #1,D6
+    BNE     EA_ADDRIND_PDEC_NOCOMMA
+    MOVE.B  #$2C,(A1)+
+EA_ADDRIND_PDEC_NOCOMMA
+    MOVE.B  #0,(A1)
+    MOVE.B  #14,D0
+    LEA     STRHEXOUT,A1
+    TRAP    #15
+    MOVEM.L (sp)+,D0-A6
     RTS
 EA_ABS_LONG:
+
+    LEA STRHEXOUT,A1
+    SUBA.W  #1,A1
+    MOVE.B  #$24,(A1)+
+    MOVE.L  (A5),D1
+    JSR HEX_STRING_L
+    ADDA.W  #8,A1
+    CMP.B   #1,D6
+    BNE     EA_ABS_LONG_NOCOMMA
+    MOVE.B  #$2C,(A1)+
+EA_ABS_LONG_NOCOMMA
+    MOVE.B  #0,(A1)
+    MOVE.B  #14,D0
+    LEA     STRHEXOUT,A1
+    SUBA.W  #1,A1
+    TRAP    #15
+    ADDA.W  #4,A5
     RTS
+    
 EA_ABS_SHORT:
+    LEA STRHEXOUT,A1
+    SUBA.W  #1,A1
+    MOVE.B  #$24,(A1)+
+    EOR.L   D1,D1
+    MOVE.W  (A5),D1
+    JSR HEX_STRING_L
+    ADDA.W  #4,A1
+    MOVE.L  (A1),D4
+    CMP.B   #1,D6
+    BNE     EA_ABS_SHORT_NOCOMMA
+    MOVE.B  #$2C,(A1)+
+EA_ABS_SHORT_NOCOMMA
+    MOVE.B  #0,(A1)
+    MOVE.B  #14,D0
+    LEA     STRHEXOUT,A1
+    MOVE.L  D4,(A1)
+    SUBA.W  #1,A1
+    TRAP    #15
+    ADDA.W  #2,A5
     RTS
 EA_IMM:
     RTS

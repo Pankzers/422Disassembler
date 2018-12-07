@@ -159,7 +159,7 @@ N_RTS:
             
 N_NEG:      EOR.L D1,D1
             MOVE.W (A5),D1
-            AND.W #$1C0,D1      * BITWISE AND TO CHECK IF = 111 = LEA  
+            AND.W #$1C0,D1        * BITWISE AND TO CHECK IF = 111 = LEA  
             CMP.W #$1C0,D1        *CHECK FOR  LEA WORD
             BNE N_LEA
             JSR SR_LEA
@@ -167,7 +167,7 @@ N_NEG:      EOR.L D1,D1
                        
 N_LEA:      EOR.L D1,D1
             MOVE.W (A5),D1
-            CMP.W #$0000,(A5)   *Check for JSR OPWORD. CHANGE HEX! FIXED
+            CMP.W #$E80,(A5)    *Check for JSR OPWORD.
             BNE N_JSR
             JSR SR_JSR
             BRA MAINLOOP

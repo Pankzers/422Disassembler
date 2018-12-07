@@ -254,23 +254,24 @@ value1000
             
 
 N_DIVS:     
-            CMP.W #6,D1
+           CMP.W #6,D1
             BGT N_OR
             JSR SR_OR
             BRA MAINLOOP
             *THIS CODE SHOULD NOT BE ACCESSED IT IS BAD!
             CMP.W #0,D1
-            BEQ SR_SUB           * IF 000 then OR.B 
+            BEQ SR_OR           * IF 000 then OR.B 
             CMP.W #1,D1
-            BEQ SR_SUB            * IF 001 then OR.W -> < ea > V Dn -> Dn 
+            BEQ SR_OR            * IF 001 then OR.W -> < ea > V Dn -> Dn 
             CMP.W #2,D1
-            BEQ SR_SUB           * IF 010 then OR.L -> < ea > V Dn -> Dn 
+            BEQ SR_OR           * IF 010 then OR.L -> < ea > V Dn -> Dn 
             CMP.W #4,D1
-            BEQ SR_SUB           * IF 100 then OR.B -> Dn V < ea > -> < ea > 
+            BEQ SR_OR           * IF 100 then OR.B -> Dn V < ea > -> < ea > 
             CMP.W #5,D1
-            BEQ SR_SUB           * IF 101 then OR.W -> Dn V < ea > -> < ea > 
+            BEQ SR_OR           * IF 101 then OR.W -> Dn V < ea > -> < ea > 
             CMP.W #6,D1
-            BEQ SR_SUB           * IF 110 then OR.L -> Dn V < ea > -> < ea > 
+            BEQ SR_OR           * IF 110 then OR.L -> Dn V < ea > -> < ea > 
+
             
 N_OR:            
             JSR SR_DATA

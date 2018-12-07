@@ -116,13 +116,18 @@ value0001
             
 value0010
             MOVE.L (A5),D1
-            AND.W #$40,D1
-            CMP.W #$40,D1
-            BNE N_MOVEA
+            AND.L #$01C0,D1
+            CMP.W #$0040,D1
+            BNE MOVE_0010
             JSR SR_MOVEA                     *INSTRUCTION IS EITHER MOVE.L OR MOVEA.L
             BRA MAINLOOP
            
-N_MOVEA     JSR SR_MOVE
+MOVE_0010   
+            LEA N_MOVE_0010,A4  
+            JSR SR_MOVE
+            BRA MAINLOOP
+N_MOVE_0010
+            JSR SR_DATA
             BRA MAINLOOP
             
             
@@ -562,15 +567,15 @@ SR_NOP:
 *MOVE SUBROUTINE
 *______________
 SR_MOVE:
-MOVE_SIZE    DC.L    SIZE_BYTE,SIZE_WORD,SIZE_LONG,SR_DATA
-MOVE_EA      DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_LONG,EA_ABS_SHORT,SR_DATA,SR_DATA,SR_DATA
+MOVE_SIZE   DC.L    SR_DATA,SIZE_BYTE,SIZE_LONG,SIZE_WORD
+MOVE_EA_SRC DC.L    EA_DATA,EA_ADDR,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_LONG,EA_ABS_SHORT,SR_DATA,SR_DATA,EA_IMM
+MOVE_EA_DST DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_LONG,EA_ABS_SHORT,SR_DATA,SR_DATA,SR_DATA       
         *READ OP WORD AND CONFIRM VALIDITY (Otherwise JMP to DATA and then RTS to main.)
          MOVEA.L A5,A2
-         ADDA.W #1,A2
          EOR.L D2,D2
          MOVE.B (A2),D2                                *UPDATE VALIDITY 
-         ANDI.B #$C0,D2
-         LSR.B  #4,D2
+         ANDI.B #$30,D2
+         LSR.B  #2,D2
          LEA SR_DATA, A3
          CMPA.L MOVE_SIZE(PC,D2),A3
          BEQ    SR_DATA

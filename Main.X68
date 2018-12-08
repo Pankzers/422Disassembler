@@ -1181,35 +1181,46 @@ SR_MULS_OUT
 *DIVS SUBROUTINE
 *______________
 SR_DIVS:
-DIVS_SIZE    DC.L    SIZE_BYTE,SIZE_WORD,SIZE_LONG,SR_DATA
+DIVS_SIZE    DC.L    SR_DATA,SIZE_WORD,SIZE_LONG,SR_DATA
 DIVS_EA      DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_LONG,EA_ABS_SHORT,SR_DATA,SR_DATA,SR_DATA
-        *READ OP WORD AND CONFIRM VALIDITY (Otherwise JMP to DATA and then RTS to main.)
-         MOVEA.L A5,A2
-         ADDA.W #1,A2
-         EOR.L D2,D2
-         MOVE.B (A2),D2
-         ANDI.B #$C0,D2                         *LIKELY NEED TO CHANGE THESE VALUES
-         LSR.B  #4,D2                           *LIKELY NEED TO CHANGE SHIFT AMOUNT TOO??
-         LEA SR_DATA, A3
-         CMPA.L DIVS_SIZE(PC,D2),A3
-         BEQ    SR_DATA
-         BRA SR_DIVS_OUT
-         
-        
-        ******************
-        *EA MODE CALCULATION
-        ******************
-         EOR.L   D3,D3
-         EOR.L   D4,D4
-         MOVE.B  (A2),D3 *Move OPWORD to D3
-         MOVE.B  D3,D4   *MOVE OPWORD to D4
-         ANDI.B  #$38,D3 *BITMASK TO FIND EA MODE
-         ANDI.B  #$07,D4 *BITMASK TO FIND REGISTER VALUE
+               *READ OP WORD AND CONFIRM VALIDITY (Otherwise JMP to DATA and then RTS to main.)
+    MOVEA.L A5,A2
+    ADDA.W  #1,A2
+    EOR.L   D2,D2
+    MOVE.B  (A2),D2 *Size Code
+    ANDI.B  #$C0,D2
+    LSR.B   #4,D2
+    LEA     SR_DATA,A3
+    CMPA.L  DIVS_SIZE(PC,D2),A3
+    BEQ     SR_DATA
+    
+
+    ********************
+    *EA MODE CALCULATION
+    ******************
+    EOR.L   D3,D3
+    EOR.L   D4,D4
+    MOVE.B  (A2),D3 *Move OPWORD to D3
+    MOVE.B  D3,D4   *MOVE OPWORD to D4
+    ANDI.B  #$38,D3 *Bitmask EA Mode
+    ANDI.B  #$07,D4 *Bitmask EA Register
+    LSR.B   #1,D3
+    LSL.B   #2,D4
+    
+    CMP.B   #$1C,D3
+    BNE     SR_DIVS_NOT_111
+    ADD.B   D4,D3            *GOES TO RIGHT SIDE OF TABLE (HAVE TO ADD REGISTERS TO MODE)
+    CMPA.L  DIVS_EA(PC,D3),A3
+    BEQ     SR_DATA
+    BRA     SR_DIVS_OUT
+SR_DIVS_NOT_111:
+    CMPA.L  DIVS_EA(PC,D3),A3  *LEFT SIDE OF TABLE   (REGISTER VALUE IS REGISTER NUMBER)
+    BEQ     SR_DATA
         
         ******************
         *PRINT OUT
         ******************
-SR_DIVS_OUT        
+SR_DIVS_OUT:     
         MOVE.L  A5,D1
         JSR     HEX_STRING_L
         LEA     STRHEXOUT,A1
@@ -1226,25 +1237,34 @@ SR_DIVS_OUT
         
         ADDA.W  #2,A5
         
-        RTS    
+    *OUTPUT FINAL CR,LF
+    LEA STRHEXOUT,A1
+    MOVE.B  #14,D0
+    MOVE.L  #$0D0A0000,(A1)
+    TRAP    #15
+
+    RTS     
+
 
 
 *LEA SUBROUTINE
 *______________
 SR_LEA:
-LEA_EA   DC.L    SR_DATA,SR_DATA,EA_ADDRIND,SR_DATA,SR_DATA,SR_DATA,SR_DATA,EA_ABS_LONG,EA_ABS_SHORT,SR_DATA,SR_DATA,SR_DATA
-        
+LEA_SIZE    DC.L    SR_DATA,SR_DATA,SIZE_LONG
+LEA_EA      DC.L    SR_DATA,SR_DATA,EA_ADDRIND,SR_DATA,SR_DATA,SR_DATA,SR_DATA,EA_ABS_SHORT,EA_ABS_LONG,SR_DATA,SR_DATA,SR_DATA    
+    
     *READ OP WORD AND CONFIRM VALIDITY (Otherwise JMP to DATA and then RTS to main.)
     MOVEA.L A5,A2
-    ADDA.W #1,A2
-    EOR.L D2,D2
-    MOVE.B (A2),D2
-    ANDI.B #$38,D2                     *VALIDATING FOR EAMODE BITS 
-   * LSR.B  #4,D2
-    LEA SR_DATA, A3
-    CMPA.L LEA_EA(PC,D2),A3
-    BEQ    SR_DATA
-    ***BRA SR_LEA_OUT                  MOVED THIS UNDER EA CALCULATIONS ????
+    ADDA.W  #1,A2
+    EOR.L   D2,D2
+    MOVE.B  (A2),D2 *Size Code
+    ANDI.B  #$C0,D2
+    LSR.B   #4,D2
+    LEA     SR_DATA,A3
+    CMPA.L  LEA_SIZE(PC,D2),A3
+    BEQ     SR_DATA
+
+
     ********************
     *EA MODE CALCULATION
     ******************
@@ -1254,7 +1274,21 @@ LEA_EA   DC.L    SR_DATA,SR_DATA,EA_ADDRIND,SR_DATA,SR_DATA,SR_DATA,SR_DATA,EA_A
     MOVE.B  D3,D4   *MOVE OPWORD to D4
     ANDI.B  #$38,D3 *BITMASK TO FIND EA MODE
     ANDI.B  #$07,D4 *BITMASK TO FIND REGISTER VALUE
-    BRA SR_LEA_OUT    
+    LSR.B #1,D3
+    LSL.B #2,D4
+    
+    CMP.B   #$1C,D3
+    BNE     SR_LEA_NOT_111
+
+    ADD.B   D4,D3            *GOES TO RIGHT SIDE OF TABLE (HAVE TO ADD REGISTERS TO MODE)
+    CMPA.L  LEA_EA(PC,D3),A3
+    BEQ     SR_DATA
+    BRA     SR_LEA_OUT
+
+SR_LEA_NOT_111:
+    CMPA.L  LEA_EA(PC,D3),A3  *LEFT SIDE OF TABLE   (REGISTER VALUE IS REGISTER NUMBER)
+    BEQ     SR_DATA
+  
     ******************
     *PRINT OUT
     ******************

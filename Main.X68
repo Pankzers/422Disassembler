@@ -82,17 +82,19 @@ table       dc.l    value0000
             dc.l    value1111
             
             
-value0000   MOVE.W (A5),D1     *Check for CMPI OPWORD. CHANGE HEX!
-            ANDI.W #$C000,D1
-            CMP.W #$C000,D1
+value0000   MOVE.W (A5),D1          *Check for CMPI OPWORD.
+            ANDI.W #$C00,D1
+            CMP.W #$C00,D1
             BNE N_CMPI
             JSR SR_CMPI
             BRA MAINLOOP
             
-N_CMPI:     EOR.L D1,D1
+N_CMPI:    
+            BRA N_ORI                *ORI IS BUGGED, RUINING OTHER OPERANDS!!!!!!!!!!!!!
+            EOR.L D1,D1
             MOVE.W (A5),D1
             ANDI.W #$F00,D1
-            CMP.W #$0,D1      *Check for ORI OPWORD. CHANGE HEX!
+            CMP.W #$0,D1             *Check for ORI OPWORD. CHANGE HEX!
             BNE N_ORI
             JSR SR_ORI
             BRA MAINLOOP
@@ -107,8 +109,7 @@ N_ORI:      EOR.L D1,D1
 N_BCLR:
             JSR SR_DATA
             BRA MAINLOOP
-
-  
+ 
          
 value0001
             MOVE.L (A5),D1
@@ -1051,33 +1052,47 @@ SR_CMP_OUT
 SR_CMPI:
 CMPI_SIZE    DC.L    SIZE_BYTE,SIZE_WORD,SIZE_LONG,SR_DATA
 CMPI_EA      DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_LONG,EA_ABS_SHORT,SR_DATA,SR_DATA,SR_DATA
-        *READ OP WORD AND CONFIRM VALIDITY (Otherwise JMP to DATA and then RTS to main.)
-         MOVEA.L A5,A2
-         ADDA.W #1,A2
-         EOR.L D2,D2
-         MOVE.B (A2),D2
-         ANDI.B #$C0,D2                    *UPDATE VALIDITY
-         LSR.B  #4,D2
-         LEA SR_DATA, A3
-         CMPA.L CMPI_SIZE(PC,D2),A3
-         BEQ    SR_DATA
-         BRA SR_CMPI_OUT
-         
-        
-        ******************
-        *EA MODE CALCULATION
-        ******************
-         EOR.L   D3,D3
-         EOR.L   D4,D4
-         MOVE.B  (A2),D3 *Move OPWORD to D3
-         MOVE.B  D3,D4   *MOVE OPWORD to D4
-         ANDI.B  #$38,D3 *BITMASK TO FIND EA MODE
-         ANDI.B  #$07,D4 *BITMASK TO FIND REGISTER VALUE
+         *READ OP WORD AND CONFIRM VALIDITY (Otherwise JMP to DATA and then RTS to main.)
+    MOVEA.L A5,A2
+    ADDA.W  #1,A2
+    EOR.L   D2,D2
+    MOVE.B  (A2),D2 *Size Code
+    ANDI.B  #$C0,D2
+    LSR.B   #4,D2
+    LEA     SR_DATA,A3
+    CMPA.L  CMPI_SIZE(PC,D2),A3
+    BEQ     SR_DATA
+    
+
+    ********************
+    *EA MODE CALCULATION
+    ******************
+    EOR.L   D3,D3
+    EOR.L   D4,D4
+    MOVE.B  (A2),D3 *Move OPWORD to D3
+    MOVE.B  D3,D4   *MOVE OPWORD to D4
+    ANDI.B  #$38,D3 *Bitmask EA Mode
+    ANDI.B  #$07,D4 *Bitmask EA Register
+    LSR.B   #1,D3
+    LSL.B   #2,D4
+    
+    CMP.B   #$1C,D3
+    BNE     SR_CMPI_NOT_111
+    *MOVE.B  D4,D5
+    *LSL.B   #2,D5
+    ADD.B   D4,D3            *GOES TO RIGHT SIDE OF TABLE (HAVE TO ADD REGISTERS TO MODE)
+    CMPA.L  CMPI_EA(PC,D3),A3
+    BEQ     SR_DATA
+    BRA     SR_CMPI_OUT
+SR_CMPI_NOT_111:
+    CMPA.L  CMPI_EA(PC,D3),A3  *LEFT SIDE OF TABLE   (REGISTER VALUE IS REGISTER NUMBER)
+    BEQ     SR_DATA
+
         
         ******************
         *PRINT OUT
         ******************
-SR_CMPI_OUT        
+SR_CMPI_OUT     
         MOVE.L  A5,D1
         JSR     HEX_STRING_L
         LEA     STRHEXOUT,A1
@@ -1095,6 +1110,7 @@ SR_CMPI_OUT
         ADDA.W  #2,A5
         
         RTS    
+ 
 
 
 *MULS SUBROUTINE

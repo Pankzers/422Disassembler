@@ -19,6 +19,18 @@ START:                  ; first instruction of program
     MOVEM.L $4980,A0-A2
 * ADD and ADDA    
     ADD.B D0,D1
+    ADD.B #100,D2
+    ADD.L A1,D1
+    ADD.L (A1),D1
+    ADD.L (A1)+,D1
+    ADD.L -(A1),D1
+    ADD.L $1000,D1
+    ADD.L $10001000,D1
+    ADD.W D1,(A1)
+    ADD.W D1,(A1)+
+    ADD.W D1,-(A1)
+    ADD.W D1,$1000
+    ADD.W D1,$10001000
     ADDA.L A0,A1
 * SUB and SUBA    
     SUB.B D0,D1
@@ -189,6 +201,7 @@ SUB:
 * Put variables and constants here
 END:
     END    START        ; last line of source
+
 
 
 

@@ -84,22 +84,23 @@ table       dc.l    value0000
             
 value0000   MOVE.W (A5),D1     *Check for CMPI OPWORD. CHANGE HEX!
             ANDI.W #$C000,D1
-            CMP.W #$C000, D1
+            CMP.W #$C000,D1
             BNE N_CMPI
             JSR SR_CMPI
             BRA MAINLOOP
             
 N_CMPI:     EOR.L D1,D1
             MOVE.W (A5),D1
-            CMP.W #$0, D1      *Check for ORI OPWORD. CHANGE HEX!
+            ANDI.W #$F00,D1
+            CMP.W #$0,D1      *Check for ORI OPWORD. CHANGE HEX!
             BNE N_ORI
             JSR SR_ORI
             BRA MAINLOOP
             
 N_ORI:      EOR.L D1,D1
             MOVE.W (A5),D1
-            AND.W #$180,D1      * BITWISE AND TO CHECK IF = 111 = BCLR  
-            CMP.W #$180,D1        *CHECK FOR  BCLR  WORD
+            AND.W #$180,D1       *BITWISE AND TO CHECK IF = 111 = BCLR  
+            CMP.W #$180,D1       *CHECK FOR  BCLR  WORD
             BNE N_BCLR
             JSR SR_BCLR
             BRA MAINLOOP 
@@ -172,7 +173,8 @@ N_NEG:      EOR.L D1,D1
                        
 N_LEA:      EOR.L D1,D1
             MOVE.W (A5),D1
-            CMP.W #$E80,(A5)     *Check for JSR OPWORD.
+            AND.W  #$FC0,D1
+            CMP.W  #$E80,D1     *Check for JSR OPWORD.
             BNE N_JSR
             JSR SR_JSR
             BRA MAINLOOP
@@ -1983,7 +1985,7 @@ JSR_EA      DC.L    SR_DATA,SR_DATA,EA_ADDRIND,SR_DATA,SR_DATA,SR_DATA,SR_DATA,E
     LEA SR_DATA, A3
     CMPA.L JSR_EA(PC,D2),A3
     BEQ    SR_DATA
-    BRA SR_JSR_OUT                   MOVED THIS UNDER EA CALCULATIONS
+
     ********************
     *EA MODE CALCULATION
     ******************
@@ -1993,6 +1995,24 @@ JSR_EA      DC.L    SR_DATA,SR_DATA,EA_ADDRIND,SR_DATA,SR_DATA,SR_DATA,SR_DATA,E
     MOVE.B  D3,D4   *MOVE OPWORD to D4
     ANDI.B  #$38,D3 *BITMASK TO FIND EA MODE
     ANDI.B  #$07,D4 *BITMASK TO FIND REGISTER VALUE
+    LSR.B #1,D3
+    LSL.B #2,D4
+    
+    CMP.B   #$1C,D3
+    BNE     SR_JSR_NOT_111
+
+    ADD.B   D4,D3            *GOES TO RIGHT SIDE OF TABLE (HAVE TO ADD REGISTERS TO MODE)
+    CMPA.L  JSR_EA(PC,D3),A3
+    BEQ     SR_DATA
+    BRA     SR_JSR_OUT
+
+SR_JSR_NOT_111:
+    CMPA.L  JSR_EA(PC,D3),A3  *LEFT SIDE OF TABLE   (REGISTER VALUE IS REGISTER NUMBER)
+    BEQ     SR_DATA
+
+
+    
+
     *BRA SR_JSR_OUT    
     ******************
     *PRINT OUT

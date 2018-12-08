@@ -575,6 +575,8 @@ SR_MOVE_EA1:
         CMP.L   #$1C,D3
         BNE     SR_MOVE_EA1_NOT_111
         ADD.B   D4,D3            *GOES TO RIGHT SIDE OF TABLE (HAVE TO ADD REGISTERS TO MODE)
+        CMP.B   #11,D3
+        BGT     SR_DATA
         MOVE.L  D3,A1
         CMPA.L  MOVE_EA_SRC(A1),A3
         BEQ     SR_MOVE_INVALID
@@ -2376,6 +2378,7 @@ M_HOLD              DC.B    'Press Enter to scroll',0
 *~Font size~10~
 *~Tab type~1~
 *~Tab size~4~
+
 
 
 

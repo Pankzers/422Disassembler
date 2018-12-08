@@ -1112,8 +1112,6 @@ SR_CMPI_OUT:
     MOVE.L  D3,A4
     MOVEA.L CMPI_EA(A4),A4
     EOR.L   D5,D5     *if we wanted a comma (if we had 2 arguments, insert 1 into D5 after EOR)
-    MOVE.B  #$2C,D5   *TRYING TO ADD COMMA
-
     JSR     (A4)
     
     *MOVE ADDRESS POINTER TO NEXT OPWORD

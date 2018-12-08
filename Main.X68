@@ -628,7 +628,7 @@ SR_MOVE_OUT
         MOVE.L  A5,D1
         JSR     HEX_STRING_L
         LEA     STRHEXOUT,A1
-        MOVE.B  #14,D0 *TRAP TASK 14, Output A1 with no Carriage Return or Line Feed
+        MOVE.B  #14,D0          *TRAP TASK 14, Output A1 with no Carriage Return or Line Feed
         TRAP    #15
         MOVE.L  #$094D4F56,(A1) *Store hex value of ASCII output
         MOVEA.L A1,A2
@@ -1092,24 +1092,40 @@ SR_CMPI_NOT_111:
         ******************
         *PRINT OUT
         ******************
-SR_CMPI_OUT     
-        MOVE.L  A5,D1
-        JSR     HEX_STRING_L
-        LEA     STRHEXOUT,A1
-        MOVE.B  #14,D0 *TRAP TASK 14, Output A1 with no Carriage Return or Line Feed
-        TRAP    #15
-        MOVE.L  #$09434D50,(A1) *Store hex value of ASCII output
-        MOVEA.L A1,A2
-        ADDA.W  #4,A2
-        MOVE.W  #$4900,(A2)     *Last value of ASCII (since 4 letter OP)
-        TRAP    #15
-        MOVE.L  D2,A4
-        MOVEA.L CMPI_SIZE(A4),A4
-        JSR     (A4)
-        
-        ADDA.W  #2,A5
-        
-        RTS    
+SR_CMPI_OUT:     
+    MOVE.L  A5,D1
+    JSR     HEX_STRING_L
+    LEA     STRHEXOUT,A1
+    MOVE.B  #14,D0 *TRAP TASK 14, Output A1 with no Carriage Return or Line Feed
+    TRAP    #15
+    MOVE.L  #$09434D50,(A1) *Store hex value of ASCII output
+    MOVEA.L A1,A2
+    ADDA.W  #4,A2
+    MOVE.W  #$4900,(A2)     *Last value of ASCII (since 4 letter OP)
+    TRAP    #15
+    EOR.L   D1,D1
+    MOVE.W  (A5),D1
+    ADDA.W  #2,A5
+    MOVE.L  D2,A4
+    MOVEA.L CMPI_SIZE(A4),A4
+    JSR     (A4)
+    MOVE.L  D3,A4
+    MOVEA.L CMPI_EA(A4),A4
+    EOR.L   D5,D5     *if we wanted a comma (if we had 2 arguments, insert 1 into D5 after EOR)
+    MOVE.B  #$2C,D5   *TRYING TO ADD COMMA
+
+    JSR     (A4)
+    
+    *MOVE ADDRESS POINTER TO NEXT OPWORD
+    *ADDA.W  #2,A5
+    *OUTPUT FINAL CR,LF
+    LEA STRHEXOUT,A1
+    MOVE.B  #14,D0
+    MOVE.L  #$0D0A0000,(A1)   *ASCII for CR,LF,0
+    TRAP    #15
+    
+    *RTS
+    RTS    
  
 
 

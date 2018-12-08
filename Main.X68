@@ -1050,51 +1050,96 @@ SR_CMP_OUT
 *______________
 SR_CMPI:
 CMPI_SIZE    DC.L    SIZE_BYTE,SIZE_WORD,SIZE_LONG,SR_DATA
-CMPI_EA      DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_LONG,EA_ABS_SHORT,SR_DATA,SR_DATA,SR_DATA
-        *READ OP WORD AND CONFIRM VALIDITY (Otherwise JMP to DATA and then RTS to main.)
-         MOVEA.L A5,A2
-         ADDA.W #1,A2
-         EOR.L D2,D2
-         MOVE.B (A2),D2
-         ANDI.B #$C0,D2                    *UPDATE VALIDITY
-         LSR.B  #4,D2
-         LEA SR_DATA, A3
-         CMPA.L CMPI_SIZE(PC,D2),A3
-         BEQ    SR_DATA
-         BRA SR_CMPI_OUT
-         
+CMPI_EA      DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_LONG,EA_ABS_SHORT,SR_DATA,SR_DATA,EA_IMM
+    *READ OP WORD AND CONFIRM VALIDITY (Otherwise JMP to DATA and then RTS to main.)   
+    LEA OP_BUFFER,A0
+    MOVEA.L A5,A2
+    EOR.L D2,D2
+    MOVE.W (A2),D2                                 
+    ANDI.W #$00C0,D2      
+    LSR.L  #4,D2
+    LEA SR_DATA,A3
+    MOVE.L D2,A1
+    CMPA.L CMPI_SIZE(A1),A3
+    BEQ    SR_CMPI_INVALID
+    MOVE.L CMPI_SIZE(A1),(A0)+  
+    
+    ********************
+    *EA MODE CALCULATION
+    ******************
+    EOR.L   D3,D3
+    EOR.L   D4,D4
+    MOVE.W  (A2),D3   *Move OPWORD to D3
+    MOVE.W  D3,D4     *MOVE OPWORD to D4
+    ANDI.W  #$0038,D3 *Bitmask EA Mode
+    ANDI.W  #$0007,D4 *Bitmask EA Register
+    LSR.L   #1,D3
+    LSL.L   #2,D4
+
+    CMP.L   #$1C,D3
+    BNE     SR_CMPI_NOT_111
+    ADD.B   D4,D3            *GOES TO RIGHT SIDE OF TABLE (HAVE TO ADD REGISTERS TO MODE)
+
+    CMP.B   #44,D3
+    BGT     SR_DATA
+    MOVE.L  D3,A1
+    CMPA.L  CMPI_EA(A1),A3
+    BEQ     SR_CMPI_INVALID
+    MOVE.L  CMPI_EA(A1),(A0)+
+    MOVE.L  D4,(A0)+
+    BRA     SR_CMPI_OUT   
+       
+SR_CMPI_NOT_111:      
+    MOVE.L  D3,A1
+    CMPA.L  CMPI_EA(A1),A3  *LEFT SIDE OF TABLE   (REGISTER VALUE IS REGISTER NUMBER)
+    BEQ     SR_CMPI_INVALID
+    MOVE.L  CMPI_EA(A1),(A0)+
+    MOVE.L  D4,(A0)+
+       
+    ******************
+    *PRINT OUT
+    ******************
+SR_CMPI_OUT:     
+    MOVE.L  A5,D1
+    JSR     HEX_STRING_L
+    LEA     STRHEXOUT,A1
+    MOVE.B  #14,D0           *TRAP TASK 14, Output A1 with no Carriage Return or Line Feed
+    TRAP    #15
+    MOVE.L  #$09434D50,(A1)  *Store hex value of ASCII output
+    MOVEA.L A1,A2
+    ADDA.W  #4,A2
+    MOVE.W  #$4900,(A2)      *Last value of ASCII (since 4 letter OP)
+    TRAP    #15
+    
+    EOR.L   D1,D1
+    MOVE.W  (A5),D1
+    ADDA.W  #2,A5
+    LEA     OP_BUFFER,A0
+    MOVE.L  (A0)+,A1
+    JSR     (A1)
+
+    EOR.L   D5,D5
+    MOVE.L  #1,D6
+    MOVE.L  (A0)+,A1
+    ADDA.W  #4,A0
+    JSR     (A1)
         
-        ******************
-        *EA MODE CALCULATION
-        ******************
-         EOR.L   D3,D3
-         EOR.L   D4,D4
-         MOVE.B  (A2),D3 *Move OPWORD to D3
-         MOVE.B  D3,D4   *MOVE OPWORD to D4
-         ANDI.B  #$38,D3 *BITMASK TO FIND EA MODE
-         ANDI.B  #$07,D4 *BITMASK TO FIND REGISTER VALUE
+    MOVE.B  D6,D5
+    EOR.L   D6,D6
+    MOVE.L  (A0),A1
+    JSR     (A1)
         
-        ******************
-        *PRINT OUT
-        ******************
-SR_CMPI_OUT        
-        MOVE.L  A5,D1
-        JSR     HEX_STRING_L
-        LEA     STRHEXOUT,A1
-        MOVE.B  #14,D0 *TRAP TASK 14, Output A1 with no Carriage Return or Line Feed
-        TRAP    #15
-        MOVE.L  #$09434D50,(A1) *Store hex value of ASCII output
-        MOVEA.L A1,A2
-        ADDA.W  #4,A2
-        MOVE.W  #$4900,(A2)     *Last value of ASCII (since 4 letter OP)
-        TRAP    #15
-        MOVE.L  D2,A4
-        MOVEA.L CMPI_SIZE(A4),A4
-        JSR     (A4)
-        
-        ADDA.W  #2,A5
-        
-        RTS    
+    LEA STRHEXOUT,A1
+    MOVE.B  #14,D0
+    MOVE.L  #$0D0A0000,(A1)   *ASCII for CR,LF,0
+    TRAP    #15
+
+    RTS
+   
+SR_CMPI_INVALID:
+        ADDA.W  #4,sp *Reset the Stack location to not include the jump to this location.
+        JMP    N_CMPI
+    
 
 
 *MULS SUBROUTINE
@@ -2333,7 +2378,62 @@ EA_ABS_SHORT_NOCOMMA
     TRAP    #15
     ADDA.W  #2,A5
     RTS
+*Size (First argument, of the OP_Buffer must be set for EA_IMM!
 EA_IMM:
+    MOVEM.L D0-A6,-(sp)
+    LEA     STRHEXOUT,A1
+    SUBA.W  #2,A1
+    MOVE.W  #$2324,(A1)
+    LEA     OP_BUFFER,A0
+    LEA     size_byte,A1
+    LEA     size_word,A2
+    LEA     size_long,A3
+    EOR.L   D1,D1
+    CMPA.L  A0,A1
+    BEQ EA_IMM_BYTE
+    CMPA.L  A0,A2
+    BEQ EA_IMM_WORD
+    CMPA.L  A0,A3
+    BEQ EA_IMM_LONG
+    
+EA_IMM_BYTE:
+    LEA     STRHEXOUT,A1
+    MOVE.W  (A5),D1
+    JSR     HEX_STRING_L
+    ADDA.W  #2,A1
+    EOR.L   D2,D2
+    MOVE.W  (A1),D2
+    MOVE.L  A1,A2
+    LEA     STRHEXOUT,A1
+    MOVE.W  D2,(A1)
+    MOVEA.L A2,A1
+    ADDA.W  #2,A5
+    BRA     EA_IMM_OUT
+EA_IMM_WORD:
+    LEA     STRHEXOUT,A1
+    MOVE.W  (A5),D1
+    JSR     HEX_STRING_L
+    ADDA.W  #4,A1
+    ADDA.W  #2,A5
+    BRA     EA_IMM_OUT
+EA_IMM_LONG:
+    LEA     STRHEXOUT,A1
+    MOVE.L  (A5),D1
+    JSR     HEX_STRING_L
+    ADDA.W  #8,A1
+    ADDA.W  #4,A5
+EA_IMM_OUT:
+    CMP.B   #1,D6
+    BNE     EA_IMM_NOCOMMA
+    MOVE.B  #$2C,(A1)+
+EA_IMM_NOCOMMA
+    MOVE.B  #0,(A1)
+    MOVE.B  #14,D0
+    LEA     STRHEXOUT,A1
+    SUBA.W  #2,A1
+    TRAP    #15
+
+    MOVEM.L (sp)+,D0-A6
     RTS
     
             
@@ -2345,6 +2445,7 @@ EXIT:
     MOVE.L  #$454F4600,(A1)
     MOVE.B  #14,D0
     TRAP    #15
+    SIMHALT
 
     
     
@@ -2380,6 +2481,7 @@ M_HOLD              DC.B    'Press Enter to scroll',0
 *~Font size~10~
 *~Tab type~1~
 *~Tab size~4~
+
 
 
 

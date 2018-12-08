@@ -543,27 +543,73 @@ MOVE_SIZE   DC.L    SR_DATA,SIZE_BYTE,SIZE_LONG,SIZE_WORD
 MOVE_EA_SRC DC.L    EA_DATA,EA_ADDR,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_LONG,EA_ABS_SHORT,SR_DATA,SR_DATA,EA_IMM
 MOVE_EA_DST DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_LONG,EA_ABS_SHORT,SR_DATA,SR_DATA,SR_DATA       
         *READ OP WORD AND CONFIRM VALIDITY (Otherwise JMP to DATA and then RTS to main.)
-         MOVEA.L A5,A2
-         EOR.L D2,D2
-         MOVE.B (A2),D2                                *UPDATE VALIDITY 
-         ANDI.B #$30,D2
-         LSR.B  #2,D2
-         LEA SR_DATA, A3
-         CMPA.L MOVE_SIZE(PC,D2),A3
-         BEQ    SR_DATA
-         BRA SR_MOVE_OUT
-         
+        LEA OP_BUFFER,A0
+        MOVEA.L A5,A2
+        EOR.L D2,D2
+        MOVE.L (A2),D2                                *UPDATE VALIDITY 
+        ANDI.L #$3000,D2
+        MOVE.B #10,D1
+        LSR.B  D1,D2
+        LEA SR_DATA, A3
+        MOVE.L D2,A1
+        CMPA.L MOVE_SIZE(A1),A3
+        BEQ    SR_MOVE_INVALID
+        MOVE.L MOVE_SIZE(A1),(A0)+
         
+SR_MOVE_EA1: 
+                
         ******************
-        *EA MODE CALCULATION
-        ******************
-         EOR.L   D3,D3
-         EOR.L   D4,D4
-         MOVE.B  (A2),D3 *Move OPWORD to D3
-         MOVE.B  D3,D4   *MOVE OPWORD to D4
-         ANDI.B  #$38,D3 *BITMASK TO FIND EA MODE
-         ANDI.B  #$07,D4 *BITMASK TO FIND REGISTER VALUE
+        *SOURCE MODE CALCULATION
+        ******************  
+        EOR.L   D3,D3
+        EOR.L   D4,D4
+        MOVE.L  (A2),D3 *Move OPWORD to D3
+        MOVE.L  D3,D4   *MOVE OPWORD to D4
+        ANDI.L  #$0038,D3 *Bitmask EA Mode
+        ANDI.L  #$0007,D4 *Bitmask EA Register
+        LSR.L   #4,D3
+        LSR.L   #7,D4
         
+        CMP.L   #$1C,D3
+        BNE     SR_MOVE_EA1_NOT_111
+        ADD.B   D4,D3            *GOES TO RIGHT SIDE OF TABLE (HAVE TO ADD REGISTERS TO MODE)
+        CMPA.L  NEG_EA(PC,D3),A3
+        BEQ     SR_MOVE_INVALID
+        MOVE.L  NEG_EA(PC,D3),(A0)+
+        MOVE.L  D4,(A0)+
+        BRA     SR_MOVE_EA2
+SR_MOVE_EA1_NOT_111:
+        CMPA.L  NEG_EA(PC,D3),A3  *LEFT SIDE OF TABLE   (REGISTER VALUE IS REGISTER NUMBER)
+        BEQ     SR_MOVE_INVALID
+        MOVE.L  NEG_EA(PC,D3),(A0)+
+        MOVE.L  D4,(A0)+
+
+SR_MOVE_EA2       
+        ******************
+        *DESTINATION MODE CALCULATION
+        ******************  
+        EOR.L   D3,D3
+        EOR.L   D4,D4
+        MOVE.L  (A2),D3 *Move OPWORD to D3
+        MOVE.L  D3,D4   *MOVE OPWORD to D4
+        ANDI.L  #$01C0,D3 *Bitmask EA Mode
+        ANDI.L  #$0E00,D4 *Bitmask EA Register
+        LSR.L   #1,D3
+        LSL.L   #2,D4
+    
+        CMP.L   #$1C,D3
+        BNE     SR_MOVE_EA2_NOT_111
+        ADD.B   D4,D3            *GOES TO RIGHT SIDE OF TABLE (HAVE TO ADD REGISTERS TO MODE)
+        CMPA.L  NEG_EA(PC,D3),A3
+        BEQ     SR_MOVE_INVALID
+        MOVE.L  NEG_EA(PC,D3),(A0)+
+        MOVE.L  D4,(A0)+
+        BRA     SR_MOVE_OUT
+SR_MOVE_EA2_NOT_111:
+        CMPA.L  NEG_EA(PC,D3),A3  *LEFT SIDE OF TABLE   (REGISTER VALUE IS REGISTER NUMBER)
+        BEQ     SR_MOVE_INVALID
+        MOVE.L  NEG_EA(PC,D3),(A0)+
+        MOVE.L  D4,(A0)+
         ******************
         *PRINT OUT
         ******************
@@ -573,18 +619,39 @@ SR_MOVE_OUT
         LEA     STRHEXOUT,A1
         MOVE.B  #14,D0 *TRAP TASK 14, Output A1 with no Carriage Return or Line Feed
         TRAP    #15
-        MOVE.L  #$094F5645,(A1) *Store hex value of ASCII output
+        MOVE.L  #$094D4F56,(A1) *Store hex value of ASCII output
         MOVEA.L A1,A2
         ADDA.W  #4,A2
-        MOVE.W  #$4500,(A2)     *Last 2 values of ASCII (since 4 letter OP)
+        MOVE.W  #$450900,(A2)     *Last 2 values of ASCII (since 4 letter OP)
         TRAP    #15
-        MOVE.L  D2,A4
-        MOVEA.L MOVE_SIZE(A4),A4
+        
+        EOR.L   D1,D1
+        MOVE.W  (A5),D1
+        ADDA.W  #2,A5
+        LEA     OP_BUFFER,A0
+        MOVE.L  (A0)+,A4
         JSR     (A4)
         
-        ADDA.W  #2,A5
+        EOR.L   D5,D5
+        MOVE.B  #1,D6
+        MOVE.L  (A0)+,A4
+        ADDA.W  #4,A0
+        JSR     (A4)
         
-        RTS   
+        MOVE.B  D6,D5
+        EOR.L   D6,D6
+        MOVE.L  (A0),A4
+        JSR     (A4)
+        
+        LEA STRHEXOUT,A1
+        MOVE.B  #14,D0
+        MOVE.L  #$0D0A0000,(A1)   *ASCII for CR,LF,0
+        TRAP    #15
+        RTS
+        
+SR_MOVE_INVALID:
+        ADDA.W  #4,(sp) *Reset the Stack location to not include the jump to this location.
+        JMP    (A4)
     
  
 *MOVEA SUBROUTINE
@@ -1183,7 +1250,7 @@ SR_LEA_OUT
 SR_NEG:
     *DEFINE RELEVANT LISTS
 NEG_SIZE    DC.L    SIZE_BYTE,SIZE_WORD,SIZE_LONG,SR_DATA
-NEG_EA      DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_LONG,EA_ABS_SHORT,SR_DATA,SR_DATA,SR_DATA
+NEG_EA      DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_SHORT,EA_ABS_LONG,SR_DATA,SR_DATA,SR_DATA
     *READ OP WORD AND CONFIRM VALIDITY (Otherwise JMP to DATA and then RTS to main.)
     MOVEA.L A5,A2
     ADDA.W  #1,A2
@@ -1202,6 +1269,7 @@ NEG_EA      DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,S
     ANDI.B  #$38,D3 *Bitmask EA Mode
     ANDI.B  #$07,D4 *Bitmask EA Register
     LSR.B   #1,D3
+    LSL.B   #2,D4
     
     CMP.B   #$1C,D3
     BNE     SR_NEG_NOT_111
@@ -1225,9 +1293,12 @@ SR_NEG_OUT:
     MOVE.L  #$094E4547,(A1)
     MOVEA.L A1,A2
     ADDA.W  #4,A2
-    MOVE.B  #$0,(A2)   *ADD FOR NULL TERMINATION 
+    MOVE.B  #$0,(A2)   *ADD FOR NULL TERMINATION
     *MOVE.B  #13,D0
     TRAP    #15         *OUTPUT ASCII 
+    EOR.L   D1,D1
+    MOVE.W  (A5),D1
+    ADDA.W  #2,A5
     MOVE.L  D2,A4
     MOVEA.L NEG_SIZE(A4),A4
     JSR     (A4)
@@ -1240,7 +1311,7 @@ SR_NEG_OUT:
         *No branching is necessary as there are no arguments for NOP
     
     *MOVE ADDRESS POINTER TO NEXT OPWORD
-    ADDA.W  #2,A5
+    *ADDA.W  #2,A5
     *OUTPUT FINAL CR,LF
     LEA STRHEXOUT,A1
     MOVE.B  #14,D0
@@ -2252,6 +2323,9 @@ EXIT:
 *________________________
 CR      EQU    $0D
 LF      EQU    $0A
+                    *SIZE,EA1MODE,EA1REG,EA2MODE,EA2REG
+OP_BUFFER   DC.L    $00,$00,$00,$00,$00
+
 ASCII   DC.B    $30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$41,$42,$43,$44,$45,$46
 LONGNIBBLEMASK      DC.L    $F0000000
 M_INPSTARTRANGE     DC.B    'Enter Start Range of Memory',CR,LF,0
@@ -2277,6 +2351,7 @@ M_HOLD              DC.B    'Press Enter to scroll',0
 *~Font size~10~
 *~Tab type~1~
 *~Tab size~4~
+
 
 
 

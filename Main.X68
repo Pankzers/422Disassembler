@@ -570,12 +570,12 @@ SR_MOVE_EA1:
         ANDI.W  #$0038,D3 *Bitmask EA Mode
         ANDI.W  #$0007,D4 *Bitmask EA Register
         LSR.L   #1,D3
-        LSR.L   #2,D4
+        LSL.L   #2,D4
         
         CMP.L   #$1C,D3
         BNE     SR_MOVE_EA1_NOT_111
         ADD.B   D4,D3            *GOES TO RIGHT SIDE OF TABLE (HAVE TO ADD REGISTERS TO MODE)
-        CMP.B   #11,D3
+        CMP.B   #44,D3
         BGT     SR_DATA
         MOVE.L  D3,A1
         CMPA.L  MOVE_EA_SRC(A1),A3
@@ -605,7 +605,9 @@ SR_MOVE_EA2
     
         CMP.L   #$1C,D3
         BNE     SR_MOVE_EA2_NOT_111
-        ADD.B   D4,D3            *GOES TO RIGHT SIDE OF TABLE (HAVE TO ADD REGISTERS TO MODE)
+        ADD.B   D4,D3 
+        CMP.B   #44,D3
+        BGT     SR_DATA           *GOES TO RIGHT SIDE OF TABLE (HAVE TO ADD REGISTERS TO MODE)
         MOVE.L  D3,A1
         CMPA.L  MOVE_EA_DST(A1),A3
         BEQ     SR_MOVE_INVALID

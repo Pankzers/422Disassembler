@@ -82,7 +82,7 @@ table       dc.l    value0000
             dc.l    value1111
             
             
-value0000   MOVE.L (A5),D1     *Check for CMPI OPWORD. CHANGE HEX!
+value0000   MOVE.W (A5),D1     *Check for CMPI OPWORD. CHANGE HEX!
             ANDI.W #$C000,D1
             CMP.W #$C000, D1
             BNE N_CMPI
@@ -115,8 +115,8 @@ value0001
             BRA MAINLOOP
             
 value0010
-            MOVE.L (A5),D1
-            AND.L #$01C0,D1
+            MOVE.W (A5),D1
+            AND.W #$01C0,D1
             CMP.W #$0040,D1
             BNE MOVE_0010
             JSR SR_MOVEA                     *INSTRUCTION IS EITHER MOVE.L OR MOVEA.L
@@ -132,7 +132,7 @@ N_MOVE_0010
             
             
 value0011
-            MOVE.L (A5),D1
+            MOVE.W (A5),D1
             AND.W #$40,D1
             CMP.W #$40,D1
             BNE N_MOVEA_2        *INSTRUCTION IS MOVE.W OR MOVEA.W
@@ -546,10 +546,10 @@ MOVE_EA_DST DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,S
         LEA OP_BUFFER,A0
         MOVEA.L A5,A2
         EOR.L D2,D2
-        MOVE.L (A2),D2                                *UPDATE VALIDITY 
-        ANDI.L #$3000,D2
-        MOVE.B #10,D1
-        LSR.B  D1,D2
+        MOVE.W (A2),D2                                *UPDATE VALIDITY 
+        ANDI.W #$3000,D2
+        MOVE.L #10,D1
+        LSR.L  D1,D2
         LEA SR_DATA, A3
         MOVE.L D2,A1
         CMPA.L MOVE_SIZE(A1),A3
@@ -563,25 +563,27 @@ SR_MOVE_EA1:
         ******************  
         EOR.L   D3,D3
         EOR.L   D4,D4
-        MOVE.L  (A2),D3 *Move OPWORD to D3
-        MOVE.L  D3,D4   *MOVE OPWORD to D4
-        ANDI.L  #$0038,D3 *Bitmask EA Mode
-        ANDI.L  #$0007,D4 *Bitmask EA Register
-        LSR.L   #4,D3
-        LSR.L   #7,D4
+        MOVE.W  (A2),D3 *Move OPWORD to D3
+        MOVE.W  D3,D4   *MOVE OPWORD to D4
+        ANDI.W  #$0038,D3 *Bitmask EA Mode
+        ANDI.W  #$0007,D4 *Bitmask EA Register
+        LSR.L   #1,D3
+        LSR.L   #2,D4
         
         CMP.L   #$1C,D3
         BNE     SR_MOVE_EA1_NOT_111
         ADD.B   D4,D3            *GOES TO RIGHT SIDE OF TABLE (HAVE TO ADD REGISTERS TO MODE)
-        CMPA.L  NEG_EA(PC,D3),A3
+        MOVE.L  D3,A1
+        CMPA.L  MOVE_EA_SRC(A1),A3
         BEQ     SR_MOVE_INVALID
-        MOVE.L  NEG_EA(PC,D3),(A0)+
+        MOVE.L  MOVE_EA_SRC(A1),(A0)+
         MOVE.L  D4,(A0)+
         BRA     SR_MOVE_EA2
 SR_MOVE_EA1_NOT_111:
-        CMPA.L  NEG_EA(PC,D3),A3  *LEFT SIDE OF TABLE   (REGISTER VALUE IS REGISTER NUMBER)
+        MOVE.L  D3,A1
+        CMPA.L  MOVE_EA_SRC(A1),A3  *LEFT SIDE OF TABLE   (REGISTER VALUE IS REGISTER NUMBER)
         BEQ     SR_MOVE_INVALID
-        MOVE.L  NEG_EA(PC,D3),(A0)+
+        MOVE.L  MOVE_EA_SRC(A1),(A0)+
         MOVE.L  D4,(A0)+
 
 SR_MOVE_EA2       
@@ -590,25 +592,27 @@ SR_MOVE_EA2
         ******************  
         EOR.L   D3,D3
         EOR.L   D4,D4
-        MOVE.L  (A2),D3 *Move OPWORD to D3
-        MOVE.L  D3,D4   *MOVE OPWORD to D4
-        ANDI.L  #$01C0,D3 *Bitmask EA Mode
-        ANDI.L  #$0E00,D4 *Bitmask EA Register
-        LSR.L   #1,D3
-        LSL.L   #2,D4
+        MOVE.W  (A2),D3 *Move OPWORD to D3
+        MOVE.W  D3,D4   *MOVE OPWORD to D4
+        ANDI.W  #$01C0,D3 *Bitmask EA Mode
+        ANDI.W  #$0E00,D4 *Bitmask EA Register
+        LSR.L   #4,D3
+        LSL.L   #7,D4
     
         CMP.L   #$1C,D3
         BNE     SR_MOVE_EA2_NOT_111
         ADD.B   D4,D3            *GOES TO RIGHT SIDE OF TABLE (HAVE TO ADD REGISTERS TO MODE)
-        CMPA.L  NEG_EA(PC,D3),A3
+        MOVE.L  D3,A1
+        CMPA.L  MOVE_EA_DST(A1),A3
         BEQ     SR_MOVE_INVALID
-        MOVE.L  NEG_EA(PC,D3),(A0)+
+        MOVE.L  MOVE_EA_DST(A1),(A0)+
         MOVE.L  D4,(A0)+
         BRA     SR_MOVE_OUT
 SR_MOVE_EA2_NOT_111:
-        CMPA.L  NEG_EA(PC,D3),A3  *LEFT SIDE OF TABLE   (REGISTER VALUE IS REGISTER NUMBER)
+        MOVE.L  D3,A1
+        CMPA.L  MOVE_EA_DST(A1),A3  *LEFT SIDE OF TABLE   (REGISTER VALUE IS REGISTER NUMBER)
         BEQ     SR_MOVE_INVALID
-        MOVE.L  NEG_EA(PC,D3),(A0)+
+        MOVE.L  MOVE_EA_DST(A1),(A0)+
         MOVE.L  D4,(A0)+
         ******************
         *PRINT OUT
@@ -622,26 +626,26 @@ SR_MOVE_OUT
         MOVE.L  #$094D4F56,(A1) *Store hex value of ASCII output
         MOVEA.L A1,A2
         ADDA.W  #4,A2
-        MOVE.W  #$450900,(A2)     *Last 2 values of ASCII (since 4 letter OP)
+        MOVE.W  #$4500,(A2)     *Last 2 values of ASCII (since 4 letter OP)
         TRAP    #15
         
         EOR.L   D1,D1
         MOVE.W  (A5),D1
         ADDA.W  #2,A5
         LEA     OP_BUFFER,A0
-        MOVE.L  (A0)+,A4
-        JSR     (A4)
+        MOVE.L  (A0)+,A1
+        JSR     (A1)
         
         EOR.L   D5,D5
         MOVE.B  #1,D6
-        MOVE.L  (A0)+,A4
+        MOVE.L  (A0)+,A1
         ADDA.W  #4,A0
-        JSR     (A4)
+        JSR     (A1)
         
         MOVE.B  D6,D5
         EOR.L   D6,D6
-        MOVE.L  (A0),A4
-        JSR     (A4)
+        MOVE.L  (A0),A1
+        JSR     (A1)
         
         LEA STRHEXOUT,A1
         MOVE.B  #14,D0
@@ -650,7 +654,8 @@ SR_MOVE_OUT
         RTS
         
 SR_MOVE_INVALID:
-        ADDA.W  #4,(sp) *Reset the Stack location to not include the jump to this location.
+        *MOVE.L  (sp)+,D0
+        ADDA.W  #4,sp *Reset the Stack location to not include the jump to this location.
         JMP    (A4)
     
  

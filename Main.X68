@@ -2464,7 +2464,7 @@ EA_ABS_SHORT_NOCOMMA
     RTS
 *Size (First argument, of the OP_Buffer must be set for EA_IMM!
 EA_IMM:
-    MOVEM.L D0-D7,-(sp)
+    MOVEM.L D0-A4,-(sp)
     LEA     STRHEXOUT,A1
     SUBA.W  #2,A1
     MOVE.W  #$2324,(A1)
@@ -2524,7 +2524,7 @@ EA_IMM_NOCOMMA
     SUBA.W  #2,A1
     TRAP    #15
 
-    MOVEM.L (sp)+,D0-D7
+    MOVEM.L (sp)+,D0-A4
     RTS
     
             

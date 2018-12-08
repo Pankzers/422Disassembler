@@ -113,10 +113,13 @@ N_BCLR:
          
 value0001
             MOVE.L (A5),D1
+            LEA N_MOVE_0001,A4
             JSR SR_MOVE                     *INSTRUCTION = MOVE.B
             BRA MAINLOOP
+N_MOVE_0001:
             
 value0010
+            LEA MOVE_0010,A4
             MOVE.W (A5),D1
             AND.W #$01C0,D1
             CMP.W #$0040,D1
@@ -134,14 +137,20 @@ N_MOVE_0010
             
             
 value0011
+            LEA MOVE_0011,A4
             MOVE.W (A5),D1
             AND.W #$40,D1
             CMP.W #$40,D1
-            BNE N_MOVEA_2        *INSTRUCTION IS MOVE.W OR MOVEA.W
+            BNE MOVE_0011        *INSTRUCTION IS MOVE.W OR MOVEA.W
             JSR SR_MOVEA
             BRA MAINLOOP
             
-N_MOVEA_2   JSR SR_MOVE
+MOVE_0011:  
+            LEA N_MOVE_0011,A4
+            JSR SR_MOVE
+            BRA MAINLOOP
+N_MOVE_0011:
+            JSR SR_DATA
             BRA MAINLOOP
             
 value0100   CMP.W #$4E71,(A5)   *Check for NOP OPWORD
@@ -543,8 +552,8 @@ SR_NOP:
 *______________
 SR_MOVE:
 MOVE_SIZE   DC.L    SR_DATA,SIZE_BYTE,SIZE_LONG,SIZE_WORD
-MOVE_EA_SRC DC.L    EA_DATA,EA_ADDR,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_LONG,EA_ABS_SHORT,SR_DATA,SR_DATA,EA_IMM
-MOVE_EA_DST DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_LONG,EA_ABS_SHORT,SR_DATA,SR_DATA,SR_DATA       
+MOVE_EA_SRC DC.L    EA_DATA,EA_ADDR,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_SHORT,EA_ABS_LONG,SR_DATA,SR_DATA,EA_IMM
+MOVE_EA_DST DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_SHORT,EA_ABS_LONG,SR_DATA,SR_DATA,SR_DATA       
         *READ OP WORD AND CONFIRM VALIDITY (Otherwise JMP to DATA and then RTS to main.)
         LEA OP_BUFFER,A0
         MOVEA.L A5,A2
@@ -664,57 +673,98 @@ SR_MOVE_INVALID:
         *MOVE.L  (sp)+,D0
         ADDA.W  #4,sp *Reset the Stack location to not include the jump to this location.
         JMP    (A4)
-    
- 
+
 *MOVEA SUBROUTINE
-*______________
+*______________    
 SR_MOVEA:
-MOVEA_SIZE    DC.L    SIZE_BYTE,SIZE_WORD,SIZE_LONG,SR_DATA
-MOVEA_EA      DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_LONG,EA_ABS_SHORT,SR_DATA,SR_DATA,SR_DATA
+MOVEA_SIZE   DC.L    SR_DATA,SR_DATA,SIZE_LONG,SIZE_WORD
+MOVEA_EA_SRC DC.L    EA_DATA,EA_ADDR,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_SHORT,EA_ABS_LONG,SR_DATA,SR_DATA,EA_IMM
         *READ OP WORD AND CONFIRM VALIDITY (Otherwise JMP to DATA and then RTS to main.)
-         MOVEA.L A5,A2
-         ADDA.W #1,A2
-         EOR.L D2,D2
-         MOVE.B (A2),D2                                *UPDATE VALIDITY 
-         ANDI.B #$C0,D2
-         LSR.B  #4,D2
-         LEA SR_DATA, A3
-         CMPA.L MOVEA_SIZE(PC,D2),A3
-         BEQ    SR_DATA
-         BRA SR_MOVEA_OUT
-         
+        LEA OP_BUFFER,A0
+        MOVEA.L A5,A2
+        EOR.L D2,D2
+        MOVE.W (A2),D2                                *UPDATE VALIDITY 
+        ANDI.W #$3000,D2
+        MOVE.L #10,D1
+        LSR.L  D1,D2
+        LEA SR_DATA, A3
+        MOVE.L D2,A1
+        CMPA.L MOVEA_SIZE(A1),A3
+        BEQ    SR_MOVE_INVALID
+        MOVE.L MOVEA_SIZE(A1),(A0)+
         
+SR_MOVEA_EA1: 
+                
         ******************
-        *EA MODE CALCULATION
-        ******************
-         EOR.L   D3,D3
-         EOR.L   D4,D4
-         MOVE.B  (A2),D3 *Move OPWORD to D3
-         MOVE.B  D3,D4   *MOVE OPWORD to D4
-         ANDI.B  #$38,D3 *BITMASK TO FIND EA MODE
-         ANDI.B  #$07,D4 *BITMASK TO FIND REGISTER VALUE
+        *SOURCE MODE CALCULATION
+        ******************  
+        EOR.L   D3,D3
+        EOR.L   D4,D4
+        MOVE.W  (A2),D3 *Move OPWORD to D3
+        MOVE.W  D3,D4   *MOVE OPWORD to D4
+        ANDI.W  #$0038,D3 *Bitmask EA Mode
+        ANDI.W  #$0007,D4 *Bitmask EA Register
+        LSR.L   #1,D3
+        LSL.L   #2,D4
         
-        ******************
-        *PRINT OUT
-        ******************
+        CMP.L   #$1C,D3
+        BNE     SR_MOVEA_EA1_NOT_111
+        ADD.B   D4,D3            *GOES TO RIGHT SIDE OF TABLE (HAVE TO ADD REGISTERS TO MODE)
+        CMP.B   #44,D3
+        BGT     SR_DATA
+        MOVE.L  D3,A1
+        CMPA.L  MOVEA_EA_SRC(A1),A3
+        BEQ     SR_MOVE_INVALID
+        MOVE.L  MOVEA_EA_SRC(A1),(A0)+
+        MOVE.L  D4,(A0)+
+        BRA     SR_MOVEA_OUT
+SR_MOVEA_EA1_NOT_111:
+        MOVE.L  D3,A1
+        CMPA.L  MOVEA_EA_SRC(A1),A3  *LEFT SIDE OF TABLE   (REGISTER VALUE IS REGISTER NUMBER)
+        BEQ     SR_MOVEA_INVALID
+        MOVE.L  MOVEA_EA_SRC(A1),(A0)+
+        MOVE.L  D4,(A0)+
+
 SR_MOVEA_OUT        
         MOVE.L  A5,D1
         JSR     HEX_STRING_L
         LEA     STRHEXOUT,A1
-        MOVE.B  #14,D0 *TRAP TASK 14, Output A1 with no Carriage Return or Line Feed
+        MOVE.B  #14,D0          *TRAP TASK 14, Output A1 with no Carriage Return or Line Feed
         TRAP    #15
-        MOVE.L  #$094F5645,(A1) *Store hex value of ASCII output
+        MOVE.L  #$094D4F56,(A1) *Store hex value of ASCII output
         MOVEA.L A1,A2
         ADDA.W  #4,A2
-        MOVE.W  #$4541,(A2)     *Last 2 values of ASCII (since 4 letter OP)
+        MOVE.L  #$45410000,(A2)     *Last 2 values of ASCII (since 4 letter OP)
         TRAP    #15
-        MOVE.L  D2,A4
-        MOVEA.L MOVEA_SIZE(A4),A4
-        JSR     (A4)
         
+        EOR.L   D1,D1
+        MOVE.W  (A5),D1
         ADDA.W  #2,A5
+        LEA     OP_BUFFER,A0
+        MOVE.L  (A0)+,A1
+        JSR     (A1)
         
-        RTS   
+        EOR.L   D5,D5
+        MOVE.B  #1,D6
+        MOVE.L  (A0)+,A1
+        ADDA.W  #4,A0
+        JSR     (A1)
+        
+        MOVE.B  D6,D5
+        EOR.L   D6,D6
+        *MOVE.L  (A0),A1
+        JSR     EA_ADDR
+        
+        LEA STRHEXOUT,A1
+        MOVE.B  #14,D0
+        MOVE.L  #$0D0A0000,(A1)   *ASCII for CR,LF,0
+        TRAP    #15
+        RTS
+        
+SR_MOVEA_INVALID:
+        *MOVE.L  (sp)+,D0
+        ADDA.W  #4,sp *Reset the Stack location to not include the jump to this location.
+        JMP    (A4) 
 
  
 *MOVEM SUBROUTINE
@@ -2264,7 +2314,7 @@ EA_ADDR_2ND:
     LSR.W   D0,D1
 
 EA_ADDR_2:
-    MOVE.B  #$44,(A1)+
+    MOVE.B  #$41,(A1)+
     *ADDA.W  #2,A1
     ADD.B   #$30,D1
     MOVE.B  D1,(A1)+
@@ -2414,7 +2464,7 @@ EA_ABS_SHORT_NOCOMMA
     RTS
 *Size (First argument, of the OP_Buffer must be set for EA_IMM!
 EA_IMM:
-    MOVEM.L D0-A6,-(sp)
+    MOVEM.L D0-D7,-(sp)
     LEA     STRHEXOUT,A1
     SUBA.W  #2,A1
     MOVE.W  #$2324,(A1)
@@ -2423,24 +2473,25 @@ EA_IMM:
     LEA     size_word,A2
     LEA     size_long,A3
     EOR.L   D1,D1
-    CMPA.L  A0,A1
+    CMPA.L  (A0),A1
     BEQ EA_IMM_BYTE
-    CMPA.L  A0,A2
+    CMPA.L  (A0),A2
     BEQ EA_IMM_WORD
-    CMPA.L  A0,A3
+    CMPA.L  (A0),A3
     BEQ EA_IMM_LONG
     
 EA_IMM_BYTE:
     LEA     STRHEXOUT,A1
     MOVE.W  (A5),D1
     JSR     HEX_STRING_L
-    ADDA.W  #2,A1
+    ADDA.W  #6,A1
     EOR.L   D2,D2
     MOVE.W  (A1),D2
-    MOVE.L  A1,A2
+    *MOVE.L  A1,A2
     LEA     STRHEXOUT,A1
     MOVE.W  D2,(A1)
-    MOVEA.L A2,A1
+    ADDA.W  #2,A1
+    *MOVEA.L A2,A1
     ADDA.W  #2,A5
     BRA     EA_IMM_OUT
 EA_IMM_WORD:
@@ -2448,6 +2499,12 @@ EA_IMM_WORD:
     MOVE.W  (A5),D1
     JSR     HEX_STRING_L
     ADDA.W  #4,A1
+    MOVEA.L A1,A2
+    EOR.L   D2,D2
+    MOVE.W  (A1),D2
+    LEA     STRHEXOUT,A1
+    MOVE.W  D2,(A1)
+    MOVEA.L A2,A1
     ADDA.W  #2,A5
     BRA     EA_IMM_OUT
 EA_IMM_LONG:
@@ -2467,7 +2524,7 @@ EA_IMM_NOCOMMA
     SUBA.W  #2,A1
     TRAP    #15
 
-    MOVEM.L (sp)+,D0-A6
+    MOVEM.L (sp)+,D0-D7
     RTS
     
             

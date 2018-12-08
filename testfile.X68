@@ -32,9 +32,14 @@ START:                  ; first instruction of program
     ADD.W D1,$1000
     ADD.W D1,$10001000
     ADDA.L A0,A1
+    ADDA.L D0,A1
+    ADDA.W (A0),A1
+    ADDA.W (A0)+,A1
+    ADDA.W -(A0),A1
+    ADDA.W $1000,A1
+    ADDA.W $10001000,A1
 * SUB and SUBA    
     SUB.B D0,D1
-    SUBA.L A0,A1
 * MULS    
     MULS.W #4,D0
     MULS.W #$0000FFFF,D0

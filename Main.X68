@@ -322,30 +322,11 @@ value1101
 
             JSR SR_ADD
             BRA MAINLOOP
-            *THIS CODE SHOULD NOT BE ACCESSED IT IS BAD!
-            CMP.W #0,D1
-            BEQ SR_ADD           * IF 000 then ADD.B 
-            CMP.W #1,D1
-            BEQ SR_ADD            * IF 001 then ADD.W -> < ea > V Dn -> Dn 
-            CMP.W #2,D1
-            BEQ SR_ADD           * IF 010 then ADD.L -> < ea > V Dn -> Dn 
-            CMP.W #4,D1
-            BEQ SR_ADD           * IF 100 then ADD.B -> Dn V < ea > -> < ea > 
-            CMP.W #5,D1
-            BEQ SR_ADD           * IF 101 then ADD.W -> Dn V < ea > -> < ea > 
-            CMP.W #6,D1
-            BEQ SR_ADD           * IF 110 then ADD.L -> Dn V < ea > -> < ea > 
-                        
-            JSR N_ADD
             
 N_ADD:
-            BRA N_ADDA
-            *THIS CODE SHOULD NOT BE ACCESSED IT IS BAD!
-            CMP.W #3,D1
-            BEQ SR_ADDA            * IF 011 then ADD.B 
-            CMP.W #7,D1
-            BEQ SR_ADDA            * IF 111 then ADD.W -> < ea > V Dn -> Dn 
-            JSR N_ADDA
+            JSR SR_ADDA
+            BRA MAINLOOP
+
          
 N_ADDA: 
             JSR SR_DATA
@@ -957,54 +938,98 @@ SR_ADD_INVALID:
 
      
 *ADDA SUBROUTINE
-*______________
+*______________  
 SR_ADDA:
-ADDA_SIZE    DC.L    SIZE_BYTE,SIZE_WORD,SIZE_LONG,SR_DATA
-ADDA_EA      DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_LONG,EA_ABS_SHORT,SR_DATA,SR_DATA,SR_DATA
+ADDA_SIZE   DC.L    SIZE_WORD,SIZE_LONG
+ADDA_EA_SRC DC.L    EA_DATA,EA_ADDR,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_SHORT,EA_ABS_LONG,SR_DATA,SR_DATA,EA_IMM      
         *READ OP WORD AND CONFIRM VALIDITY (Otherwise JMP to DATA and then RTS to main.)
-         MOVEA.L A5,A2
-         ADDA.W #1,A2
-         EOR.L D2,D2
-         MOVE.B (A2),D2
-         ANDI.B #$C0,D2                              *UPDATE VALIDITY
-         LSR.B  #4,D2
-         LEA SR_DATA, A3
-         CMPA.L ADDA_SIZE(PC,D2),A3
-         BEQ    SR_DATA
-         BRA SR_ADDA_OUT
-         
+        LEA OP_BUFFER,A0
+        MOVEA.L A5,A2
+        EOR.L   D2,D2
+        MOVE.W  (A2),D2                                *UPDATE VALIDITY 
+        ANDI.W  #$0100,D2
+        LSR.L   #6,D2
+        MOVE.W  D2,D3
+        LEA SR_DATA, A3
+        MOVE.L D2,A1
+        MOVE.L ADDA_SIZE(A1),(A0)+
         
-        ******************
-        *EA MODE CALCULATION
-        ******************
-         EOR.L   D3,D3
-         EOR.L   D4,D4
-         MOVE.B  (A2),D3 *Move OPWORD to D3
-         MOVE.B  D3,D4   *MOVE OPWORD to D4
-         ANDI.B  #$38,D3 *BITMASK TO FIND EA MODE
-         ANDI.B  #$07,D4 *BITMASK TO FIND REGISTER VALUE
-        
-        ******************
-        *PRINT OUT
-        ******************
+
+  
+        EOR.L   D3,D3
+        EOR.L   D4,D4
+        MOVE.W  (A2),D3 *Move OPWORD to D3
+        MOVE.W  D3,D4   *MOVE OPWORD to D4
+        ANDI.W  #$0038,D3 *Bitmask EA Mode
+        ANDI.W  #$0007,D4 *Bitmask EA Register
+        LSR.L   #1,D3
+        LSL.L   #2,D4
+    
+        CMP.L   #$1C,D3
+        BNE     SR_ADDA_DST_EA_NOT_111
+        ADD.B   D4,D3 
+        CMP.B   #44,D3
+        BGT     SR_DATA           *GOES TO RIGHT SIDE OF TABLE (HAVE TO ADD REGISTERS TO MODE)
+        MOVE.L  D3,A1
+        CMPA.L  ADDA_EA_SRC(A1),A3
+        BEQ     SR_ADD_INVALID
+        MOVE.L  ADDA_EA_SRC(A1),(A0)+
+        MOVE.L  D4,(A0)+
+        BRA     SR_ADDA_DST_EA_2
+SR_ADDA_DST_EA_NOT_111:
+        MOVE.L  D3,A1
+        CMPA.L  ADD_EA_SRC(A1),A3  *LEFT SIDE OF TABLE   (REGISTER VALUE IS REGISTER NUMBER)
+        BEQ     SR_ADD_INVALID
+        MOVE.L  ADD_EA_SRC(A1),(A0)+
+        MOVE.L  D4,(A0)+
+SR_ADDA_DST_EA_2:
+        LEA     EA_ADDR,A1
+        MOVE.L  A1,(A0)+
+        MOVE.W  (A2),D3
+        ANDI.W  #$0E00,D4 *Bitmask EA Register
+        LSR.L   #7,D4
+        MOVE.L  D4,(A0)+
+
 SR_ADDA_OUT        
         MOVE.L  A5,D1
         JSR     HEX_STRING_L
         LEA     STRHEXOUT,A1
-        MOVE.B  #14,D0 *TRAP TASK 14, Output A1 with no Carriage Return or Line Feed
+        MOVE.B  #14,D0          *TRAP TASK 14, Output A1 with no Carriage Return or Line Feed
         TRAP    #15
         MOVE.L  #$09414444,(A1) *Store hex value of ASCII output
         MOVEA.L A1,A2
         ADDA.W  #4,A2
-        MOVE.W  #$4100,(A2)     *Last value of ASCII (since 4 letter OP)
+        MOVE.W  #$4100,(A2)     *Last 2 values of ASCII (since 4 letter OP)
         TRAP    #15
-        MOVE.L  D2,A4
-        MOVEA.L CMPI_SIZE(A4),A4
-        JSR     (A4)
         
+        EOR.L   D1,D1
+        MOVE.W  (A5),D1
         ADDA.W  #2,A5
+        LEA     OP_BUFFER,A0
+        MOVE.L  (A0)+,A1
+        JSR     (A1)
         
-        RTS   
+        MOVE.L  #1,D5
+        MOVE.B  #1,D6
+        MOVE.L  (A0)+,A1
+        ADDA.W  #4,A0
+        JSR     (A1)
+        
+        EOR.L   D5,D5
+        EOR.L   D6,D6
+        MOVE.L  (A0),A1
+        JSR     (A1)
+        
+        LEA STRHEXOUT,A1
+        MOVE.B  #14,D0
+        MOVE.L  #$0D0A0000,(A1)   *ASCII for CR,LF,0
+        TRAP    #15
+        RTS
+        
+SR_ADDA_INVALID:
+        *MOVE.L  (sp)+,D0
+        ADDA.W  #4,sp *Reset the Stack location to not include the jump to this location.
+        JMP    N_ADDA 
     
     
 *SUB SUBROUTINE

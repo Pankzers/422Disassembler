@@ -81,7 +81,9 @@ START:                  ; first instruction of program
     DIVS.W #$100,D2
     DIVS.W #2,D0
 * LEA
-    LEA.L $5000,A4    
+    LEA (A0),A2
+    LEA $5000,A2
+    LEA $20001000,A2    
 * OR
     MOVE.L #$55555555,D2
     OR.L #$FFFFFFFF, D2

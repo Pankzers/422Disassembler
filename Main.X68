@@ -83,33 +83,36 @@ table       dc.l    value0000
             
             
 value0000   MOVE.W (A5),D1          *Check for CMPI OPWORD.
-            ANDI.W #$C00,D1
-            CMP.W #$C00,D1
+            ANDI.W #$0C00,D1
+            CMP.W #$0C00,D1
             BNE N_CMPI
             JSR SR_CMPI
             BRA MAINLOOP
             
-N_CMPI:    
-            BRA N_ORI                *ORI IS BUGGED, RUINING OTHER OPERANDS!!!!!!!!!!!!!
+N_CMPI:   
+            
             EOR.L D1,D1
             MOVE.W (A5),D1
-            ANDI.W #$F00,D1
-            CMP.W #$0,D1             *Check for ORI OPWORD. CHANGE HEX!
-            BNE N_ORI
-            JSR SR_ORI
-            BRA MAINLOOP
-            
-N_ORI:      EOR.L D1,D1
+            AND.W #$FFC0,D1
+            CMP.W #$0880,D1
+            BEQ BCLR
             MOVE.W (A5),D1
             AND.W #$0180,D1       *BITWISE AND TO CHECK IF = 111 = BCLR  
             CMP.W #$0180,D1       *CHECK FOR  BCLR  WORD
             BEQ BCLR
-            CMP.W #$0080,D1
-            BNE N_BCLR
+            BRA N_BCLR
 BCLR:
             JSR SR_BCLR
             BRA MAINLOOP 
 N_BCLR:
+            EOR.L D1,D1
+            MOVE.W (A5),D1
+            ANDI.W #$0F00,D1
+            CMP.W #$0,D1             *Check for ORI OPWORD. CHANGE HEX!
+            BNE N_ORI
+            JSR SR_ORI
+            BRA MAINLOOP
+N_ORI:
             JSR SR_DATA
             BRA MAINLOOP
  
@@ -1945,61 +1948,96 @@ SR_OR_INVALID:
 *ORI SUBROUTINE
 *______________
 SR_ORI:
-ORI_SIZE    DC.L    SIZE_BYTE,SIZE_WORD,SIZE_LONG,SR_DATA
-ORI_EA      DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_LONG,EA_ABS_SHORT,SR_DATA,SR_DATA,SR_DATA
-    *READ OP WORD AND CONFIRM VALIDITY (Otherwise JMP to DATA and then RTS to main.)
-    MOVEA.L A5,A2
-    ADDA.W #1,A2
-    EOR.L D2,D2
-    MOVE.B (A2),D2
-    ANDI.B #$C0,D2
-    LSR.B  #4,D2
-    LEA SR_DATA, A3
-    CMPA.L ORI_SIZE(PC,D2),A3
-    BEQ    SR_DATA
-    BRA SR_ORI_OUT
-    ********************
-    *EA MODE CALCULATION
-    ******************
-    EOR.L   D3,D3
-    EOR.L   D4,D4
-    MOVE.B  (A2),D3 *Move OPWORD to D3
-    MOVE.B  D3,D4   *MOVE OPWORD to D4
-    ANDI.B  #$38,D3 *BITMASK TO FIND EA MODE
-    ANDI.B  #$07,D4 *BITMASK TO FIND REGISTER VALUE
+ORI_SIZE   DC.L    SIZE_BYTE,SIZE_WORD,SIZE_LONG,SR_DATA
+ORI_EA DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_SHORT,EA_ABS_LONG,SR_DATA,SR_DATA,SR_DATA     
+        *READ OP WORD AND CONFIRM VALIDITY (Otherwise JMP to DATA and then RTS to main.)
+        LEA OP_BUFFER,A0
+        MOVEA.L A5,A2
+        EOR.L   D2,D2
+        MOVE.W  (A2),D2                                *UPDATE VALIDITY 
+        ANDI.W  #$00C0,D2
+        LSR.L   #4,D2
+        MOVE.W  D2,D3
+        LEA SR_DATA, A3
+        MOVE.L D2,A1
+        MOVE.L ORI_SIZE(A1),(A0)+
         
-    ******************
-    *PRINT OUT
-    ******************
-SR_ORI_OUT        
-    MOVE.L  A5,D1
-    JSR     HEX_STRING_L
-    LEA     STRHEXOUT,A1
-    MOVE.B  #14,D0 *TRAP TASK 14, Output A1 with no Carriage Return or Line Feed
-    TRAP    #15
-    MOVE.L  #$094F5249,(A1) 
-    MOVEA.L A1,A2
-    ADDA.W  #4,A2
-    MOVE.B  #$0,(A2)
-    TRAP    #15
-    MOVE.L  D2,A4
-    MOVEA.L ORI_SIZE(A4),A4
-    JSR     (A4)
-        
-    ************************
-    * GET EA TO PRINT OUT
-    ************************
-    *MOVE ADDRESS POINTER TO NEXT OPWORD
-    ADDA.W  #2,A5
-    *OUTPUT FINAL CR,LF
-    LEA STRHEXOUT,A1
-    MOVE.B  #14,D0
-    MOVE.L  #$0D0A0000,(A1)
-    TRAP    #15
+        LEA     EA_IMM,A1
+        MOVE.L  A1,(A0)+
+        MOVE.W  (A2),D4
+        ANDI.W  #$000E,D4 *Bitmask EA Register
+        LSL.L   #2,D4
+        MOVE.L  D4,(A0)+
 
-    RTS 
+  
+        EOR.L   D3,D3
+        EOR.L   D4,D4
+        MOVE.W  (A2),D3 *Move OPWORD to D3
+        MOVE.W  D3,D4   *MOVE OPWORD to D4
+        ANDI.W  #$0038,D3 *Bitmask EA Mode
+        ANDI.W  #$0007,D4 *Bitmask EA Register
+        LSR.L   #1,D3
+        LSL.L   #2,D4
     
- 
+        CMP.L   #$1C,D3
+        BNE     SR_ORI_EA_NOT_111
+        ADD.B   D4,D3 
+        CMP.B   #44,D3
+        BGT     SR_DATA           *GOES TO RIGHT SIDE OF TABLE (HAVE TO ADD REGISTERS TO MODE)
+        MOVE.L  D3,A1
+        CMPA.L  ORI_EA(A1),A3
+        BEQ     SR_ORI_INVALID
+        MOVE.L  ORI_EA(A1),(A0)+
+        MOVE.L  D4,(A0)+
+        BRA     SR_ORI_OUT
+SR_ORI_EA_NOT_111:
+        MOVE.L  D3,A1
+        CMPA.L  ORI_EA(A1),A3  *LEFT SIDE OF TABLE   (REGISTER VALUE IS REGISTER NUMBER)
+        BEQ     SR_ORI_INVALID
+        MOVE.L  ORI_EA(A1),(A0)+
+        MOVE.L  D4,(A0)+
+
+SR_ORI_OUT        
+        MOVE.L  A5,D1
+        JSR     HEX_STRING_L
+        LEA     STRHEXOUT,A1
+        MOVE.B  #14,D0          *TRAP TASK 14, Output A1 with no Carriage Return or Line Feed
+        TRAP    #15
+        MOVE.L  #$094F5249,(A1) *Store hex value of ASCII output
+        MOVEA.L A1,A2
+        ADDA.W  #4,A2
+        MOVE.W  #$0000,(A2)     *Last 2 values of ASCII (since 4 letter OP)
+        TRAP    #15
+        
+        EOR.L   D1,D1
+        MOVE.W  (A5),D1
+        ADDA.W  #2,A5
+        LEA     OP_BUFFER,A0
+        MOVE.L  (A0)+,A1
+        JSR     (A1)
+        
+        MOVE.L  #0,D5
+        MOVE.B  #1,D6
+        MOVE.L  (A0)+,A1
+        ADDA.W  #4,A0
+        JSR     (A1)
+        
+        *EOR.L   D5,D5
+        MOVE.L  #1,D5
+        EOR.L   D6,D6
+        MOVE.L  (A0),A1
+        JSR     (A1)
+        
+        LEA STRHEXOUT,A1
+        MOVE.B  #14,D0
+        MOVE.L  #$0D0A0000,(A1)   *ASCII for CR,LF,0
+        TRAP    #15
+        RTS
+        
+SR_ORI_INVALID:
+        *MOVE.L  (sp)+,D0
+        ADDA.W  #4,sp *Reset the Stack location to not include the jump to this location.
+        JMP    N_ORI
 *EOR SUBROUTINE
 *______________
 SR_EOR:
@@ -3105,6 +3143,7 @@ M_HOLD              DC.B    'Press Enter to scroll',0
 *~Font size~10~
 *~Tab type~1~
 *~Tab size~4~
+
 
 
 

@@ -15,11 +15,11 @@ START:                  ; first instruction of program
     MOVEA.L A0,A1
     MOVEA.W -(A0),A2
 * MOVEM    
-    MOVEM.L A0-A2,$5000
-    MOVEM.L $4980,A0-A2
+    *MOVEM.L A0-A2,$5000
+    *MOVEM.L $4980,A0-A2
 * ADD and ADDA    
     ADD.B D2,D1
-    ADD.B #100,D1
+    *ADD.B #100,D1
     ADD.L A2,D1
     ADD.L (A2),D1
     ADD.L (A2)+,D1
@@ -99,8 +99,14 @@ START:                  ; first instruction of program
     OR.L D2,$1000
     OR.L D2,$20001000
 * ORI
-    ORI.B #6,D2
-    ORI.L #6,(A2)
+    ORI.B #1,D2
+    ORI.B #2,(A2)
+    ORI.W #3,(A2)+
+    ORI.W #4,-(A2)
+    ORI.L #5,$1000
+    ORI.L #6,$20001000
+    
+    
 * NEG
     NEG.L D2
     NEG.L (A2)

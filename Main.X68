@@ -1789,59 +1789,96 @@ SR_ORI_OUT
 *EOR SUBROUTINE
 *______________
 SR_EOR:
-EOR_SIZE    DC.L    SIZE_BYTE,SIZE_WORD,SIZE_LONG,SR_DATA
-EOR_EA      DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_LONG,EA_ABS_SHORT,SR_DATA,SR_DATA,SR_DATA
-    *READ OP WORD AND CONFIRM VALIDITY (Otherwise JMP to DATA and then RTS to main.)
+EOR_SIZE    DC.L    SR_DATA,SR_DATA,SR_DATA,SR_DATA,SIZE_BYTE,SIZE_WORD,SIZE_LONG,SR_DATA
+EOR_EA      DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_SHORT,EA_ABS_LONG,SR_DATA,SR_DATA,EA_IMM
+    *READ OP WORD AND CONFIRM VALIDITY (Otherwise JMP to DATA and then RTS to main.)   
+    LEA OP_BUFFER,A0
     MOVEA.L A5,A2
-    ADDA.W #1,A2
     EOR.L D2,D2
-    MOVE.B (A2),D2
-    ANDI.B #$C0,D2
-    LSR.B  #4,D2
-    LEA SR_DATA, A3
-    CMPA.L EOR_SIZE(PC,D2),A3
-    BEQ    SR_DATA
-    BRA SR_EOR_OUT
+    MOVE.W (A2),D2                                 
+    ANDI.W #$01C0,D2      
+    LSR.L  #4,D2
+    LEA SR_DATA,A3
+    MOVE.L D2,A1
+    CMPA.L EOR_SIZE(A1),A3
+    BEQ    SR_EOR_INVALID
+    MOVE.L EOR_SIZE(A1),(A0)+  
+
     ********************
     *EA MODE CALCULATION
     ******************
     EOR.L   D3,D3
     EOR.L   D4,D4
-    MOVE.B  (A2),D3 *Move OPWORD to D3
-    MOVE.B  D3,D4   *MOVE OPWORD to D4
-    ANDI.B  #$38,D3 *BITMASK TO FIND EA MODE
-    ANDI.B  #$07,D4 *BITMASK TO FIND REGISTER VALUE
-        
+    MOVE.W  (A2),D3   *Move OPWORD to D3
+    MOVE.W  D3,D4     *MOVE OPWORD to D4
+    ANDI.W  #$0038,D3 *Bitmask EA Mode
+    ANDI.W  #$0007,D4 *Bitmask EA Register
+    LSR.L   #1,D3
+    LSL.L   #2,D4
+
+    CMP.L   #$1C,D3
+    BNE     SR_EOR_NOT_111
+    ADD.B   D4,D3            *GOES TO RIGHT SIDE OF TABLE (HAVE TO ADD REGISTERS TO MODE)
+
+    CMP.B   #44,D3
+    BGT     SR_DATA
+    MOVE.L  D3,A1
+    CMPA.L  EOR_EA(A1),A3
+    BEQ     SR_EOR_INVALID
+    MOVE.L  EOR_EA(A1),(A0)+
+    MOVE.L  D4,(A0)+
+    BRA     SR_EOR_OUT   
+       
+SR_EOR_NOT_111:      
+    MOVE.L  D3,A1
+    CMPA.L  EOR_EA(A1),A3  *LEFT SIDE OF TABLE   (REGISTER VALUE IS REGISTER NUMBER)
+    BEQ     SR_EOR_INVALID
+    MOVE.L  EOR_EA(A1),(A0)+
+    MOVE.L  D4,(A0)+
+       
     ******************
     *PRINT OUT
     ******************
-SR_EOR_OUT        
+
+SR_EOR_OUT:     
     MOVE.L  A5,D1
     JSR     HEX_STRING_L
     LEA     STRHEXOUT,A1
     MOVE.B  #14,D0 *TRAP TASK 14, Output A1 with no Carriage Return or Line Feed
     TRAP    #15
-    MOVE.L  #$094F5249,(A1) 
+    MOVE.L  #$09454F52,(A1) *store "EOR" ASCII ouput
     MOVEA.L A1,A2
     ADDA.W  #4,A2
     MOVE.B  #$0,(A2)
     TRAP    #15
-    MOVE.L  D2,A4
-    MOVEA.L EOR_SIZE(A4),A4
-    JSR     (A4)
-        
-    ************************
-    * GET EA TO PRINT OUT
-    ************************
-    *MOVE ADDRESS POINTER TO NEXT OPWORD
+    
+    EOR.L   D1,D1
+    MOVE.W  (A5),D1
     ADDA.W  #2,A5
-    *OUTPUT FINAL CR,LF
-    LEA STRHEXOUT,A1
+    LEA     OP_BUFFER,A0
+    MOVE.L  (A0)+,A1
+    JSR     (A1)
+
+    EOR.L   D5,D5
+    MOVE.L  #1,D6
+    MOVE.L  (A0)+,A1
+    ADDA.W  #4,A0
+    JSR     (A1)
+        
+    MOVE.B  D6,D5
+    EOR.L   D6,D6
+    MOVE.L  (A0),A1
+    JSR     (A1)
+    LEA     STRHEXOUT,A1
     MOVE.B  #14,D0
-    MOVE.L  #$0D0A0000,(A1)
+    MOVE.L  #$0D0A0000,(A1)   *ASCII for CR,LF,0
     TRAP    #15
 
-    RTS 
+    RTS
+   
+SR_EOR_INVALID:
+        ADDA.W  #4,sp *Reset the Stack location to not include the jump to this location.
+        JMP    N_EOR
 
   
 *LSR SUBROUTINE

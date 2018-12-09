@@ -4,7 +4,7 @@ STRHEXOUT   EQU $540
 BUFF        EQU $580
     ORG    $1000
 START:                
-
+    
 * MAIN PROGRAM LOOP
 * NOTES:
 *   WARNING: A5, A6, and D7 MUST not be overwritten by subroutines. They are system reserved currently.
@@ -238,9 +238,9 @@ value0111
             
 value1000   
             MOVE.W (A5),D1
-            AND.W #$1C0,D1      * BITWISE AND TO CHECK IF = 111 = DIVS  
-            CMP.W #$1C0,D1        *CHECK FOR  DIVS WORD
-            BEQ N_DIVS
+            AND.W #$01C0,D1      * BITWISE AND TO CHECK IF = 111 = DIVS  
+            CMP.W #$01C0,D1        *CHECK FOR  DIVS WORD
+            BNE N_DIVS
             JSR SR_DIVS
             BRA MAINLOOP
             
@@ -1549,46 +1549,51 @@ SR_MULS_INVALID:
 *DIVS SUBROUTINE
 *______________
 SR_DIVS:
-DIVS_SIZE    DC.L    SR_DATA,SIZE_WORD,SIZE_LONG,SR_DATA
-DIVS_EA      DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_LONG,EA_ABS_SHORT,SR_DATA,SR_DATA,SR_DATA
-               *READ OP WORD AND CONFIRM VALIDITY (Otherwise JMP to DATA and then RTS to main.)
-    MOVEA.L A5,A2
-    ADDA.W  #1,A2
-    EOR.L   D2,D2
-    MOVE.B  (A2),D2 *Size Code
-    ANDI.B  #$C0,D2
-    LSR.B   #4,D2
-    LEA     SR_DATA,A3
-    CMPA.L  DIVS_SIZE(PC,D2),A3
-    BEQ     SR_DATA
-    
-
-    ********************
-    *EA MODE CALCULATION
-    ******************
-    EOR.L   D3,D3
-    EOR.L   D4,D4
-    MOVE.B  (A2),D3 *Move OPWORD to D3
-    MOVE.B  D3,D4   *MOVE OPWORD to D4
-    ANDI.B  #$38,D3 *Bitmask EA Mode
-    ANDI.B  #$07,D4 *Bitmask EA Register
-    LSR.B   #1,D3
-    LSL.B   #2,D4
-    
-    CMP.B   #$1C,D3
-    BNE     SR_DIVS_NOT_111
-    ADD.B   D4,D3            *GOES TO RIGHT SIDE OF TABLE (HAVE TO ADD REGISTERS TO MODE)
-    CMPA.L  DIVS_EA(PC,D3),A3
-    BEQ     SR_DATA
-    BRA     SR_DIVS_OUT
-SR_DIVS_NOT_111:
-    CMPA.L  DIVS_EA(PC,D3),A3  *LEFT SIDE OF TABLE   (REGISTER VALUE IS REGISTER NUMBER)
-    BEQ     SR_DATA
+DIVS_EA      DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_SHORT,EA_ABS_LONG,SR_DATA,SR_DATA,EA_IMM
+*READ OP WORD AND CONFIRM VALIDITY (Otherwise JMP to DATA and then RTS to main.)
+        LEA OP_BUFFER,A0
+        MOVEA.L A5,A2
+        MOVE.W  D2,D3
+        LEA SIZE_WORD,A1
+        MOVE.L A1,(A0)+
         
-        ******************
-        *PRINT OUT
-        ******************
-SR_DIVS_OUT:     
+
+  
+        EOR.L   D3,D3
+        EOR.L   D4,D4
+        MOVE.W  (A2),D3 *Move OPWORD to D3
+        MOVE.W  D3,D4   *MOVE OPWORD to D4
+        ANDI.W  #$0038,D3 *Bitmask EA Mode
+        ANDI.W  #$0007,D4 *Bitmask EA Register
+        LSR.L   #1,D3
+        LSL.L   #2,D4
+    
+        CMP.L   #$1C,D3
+        BNE     SR_DIVS_DST_EA_NOT_111
+        ADD.B   D4,D3 
+        CMP.B   #44,D3
+        BGT     SR_DATA           *GOES TO RIGHT SIDE OF TABLE (HAVE TO ADD REGISTERS TO MODE)
+        MOVE.L  D3,A1
+        CMPA.L  DIVS_EA(A1),A3
+        BEQ     SR_DIVS_INVALID
+        MOVE.L  DIVS_EA(A1),(A0)+
+        MOVE.L  D4,(A0)+
+        BRA     SR_DIVS_DST_EA_2
+SR_DIVS_DST_EA_NOT_111:
+        MOVE.L  D3,A1
+        CMPA.L  DIVS_EA(A1),A3  *LEFT SIDE OF TABLE   (REGISTER VALUE IS REGISTER NUMBER)
+        BEQ     SR_DIVS_INVALID
+        MOVE.L  DIVS_EA(A1),(A0)+
+        MOVE.L  D4,(A0)+
+SR_DIVS_DST_EA_2:
+        LEA     EA_DATA,A1
+        MOVE.L  A1,(A0)+
+        MOVE.W  (A2),D4
+        ANDI.W  #$0E00,D4 *Bitmask EA Register
+        LSR.L   #7,D4
+        MOVE.L  D4,(A0)+
+
+SR_DIVS_OUT        
         MOVE.L  A5,D1
         JSR     HEX_STRING_L
         LEA     STRHEXOUT,A1
@@ -1599,20 +1604,35 @@ SR_DIVS_OUT:
         ADDA.W  #4,A2
         MOVE.W  #$5300,(A2)     *Last 2 values of ASCII (since 4 letter OP)
         TRAP    #15
-        MOVE.L  D2,A4
-        MOVEA.L DIVS_SIZE(A4),A4
-        JSR     (A4)
         
+        EOR.L   D1,D1
+        MOVE.W  (A5),D1
         ADDA.W  #2,A5
+        LEA     OP_BUFFER,A0
+        MOVE.L  (A0)+,A1
+        JSR     (A1)
         
-    *OUTPUT FINAL CR,LF
-    LEA STRHEXOUT,A1
-    MOVE.B  #14,D0
-    MOVE.L  #$0D0A0000,(A1)
-    TRAP    #15
-
-    RTS     
-
+        MOVE.L  #0,D5
+        MOVE.B  #1,D6
+        MOVE.L  (A0)+,A1
+        ADDA.W  #4,A0
+        JSR     (A1)
+        
+        MOVE.L  #1,D5
+        EOR.L   D6,D6
+        MOVE.L  (A0),A1
+        JSR     (A1)
+        
+        LEA STRHEXOUT,A1
+        MOVE.B  #14,D0
+        MOVE.L  #$0D0A0000,(A1)   *ASCII for CR,LF,0
+        TRAP    #15
+        RTS
+        
+SR_DIVS_INVALID:
+        *MOVE.L  (sp)+,D0
+        ADDA.W  #4,sp *Reset the Stack location to not include the jump to this location.
+        JMP    N_DIVS 
 
 
 *LEA SUBROUTINE
@@ -3071,6 +3091,7 @@ M_HOLD              DC.B    'Press Enter to scroll',0
 *~Font size~10~
 *~Tab type~1~
 *~Tab size~4~
+
 
 
 

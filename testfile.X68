@@ -67,11 +67,18 @@ START:                  ; first instruction of program
     MULS.W (A1)+,D2
     MULS.W -(A1),D2
     MULS.W $1000,D2
+    MULS.W $20001000,D2
     MULS.W #$0000FFFF,D2
     MULS.W #4,D2
     
 * DIVS    
-    MOVE.B #8,D0
+    DIVS.W D1,D2
+    DIVS.W (A1),D2
+    DIVS.W (A1)+,D2
+    DIVS.W -(A1),D2
+    DIVS.W $1000,D2
+    DIVS.W $20001000,D2
+    DIVS.W #$100,D2
     DIVS.W #2,D0
 * LEA
     LEA.L $5000,A4    

@@ -18,28 +18,40 @@ START:                  ; first instruction of program
     MOVEM.L A0-A2,$5000
     MOVEM.L $4980,A0-A2
 * ADD and ADDA    
-    ADD.B D0,D1
-    ADD.B #100,D2
-    ADD.L A1,D1
-    ADD.L (A1),D1
-    ADD.L (A1)+,D1
-    ADD.L -(A1),D1
+    ADD.B D2,D1
+    ADD.B #100,D1
+    ADD.L A2,D1
+    ADD.L (A2),D1
+    ADD.L (A2)+,D1
+    ADD.L -(A2),D1
     ADD.L $1000,D1
     ADD.L $10001000,D1
-    ADD.W D1,(A1)
-    ADD.W D1,(A1)+
-    ADD.W D1,-(A1)
-    ADD.W D1,$1000
-    ADD.W D1,$10001000
-    ADDA.L A0,A1
-    ADDA.L D0,A1
-    ADDA.W (A0),A1
-    ADDA.W (A0)+,A1
-    ADDA.W -(A0),A1
+    ADD.W D2,(A1)
+    ADD.W D2,(A1)+
+    ADD.W D2,-(A1)
+    ADD.W D2,$1000
+    ADD.W D2,$10001000
+    ADDA.L A2,A1
+    ADDA.L D2,A1
+    ADDA.W (A2),A1
+    ADDA.W (A2)+,A1
+    ADDA.W -(A2),A1
     ADDA.W $1000,A1
     ADDA.W $10001000,A1
 * SUB and SUBA    
-    SUB.B D0,D1
+    SUB.B D2,D1
+    SUB.W A2,D1
+    SUB.L (A2),D1
+    SUB.W (A2)+,D1
+    SUB.B -(A2),D1
+    SUB.W $2000,D1
+    SUB.L $10001000,D1
+    
+    SUB.B D2,(A1)
+    SUB.B D2,(A1)+
+    SUB.W D2,-(A1)
+    SUB.L D2,$2000
+    SUB.L D2,$20010001
 * MULS    
     MULS.W #4,D0
     MULS.W #$0000FFFF,D0

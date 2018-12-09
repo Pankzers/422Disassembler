@@ -246,6 +246,9 @@ VS:
 BRA:
 * JSR
     JSR SUB
+    JSR (A2)
+    JSR $1000
+    JSR $20001000
     BRA END
 * RTS
 SUB:     

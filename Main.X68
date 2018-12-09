@@ -189,20 +189,13 @@ N_NEG:      EOR.L D1,D1
                        
 N_LEA:      EOR.L D1,D1
             MOVE.W (A5),D1
-            AND.W  #$FC0,D1
-            CMP.W  #$E80,D1      *Check for JSR OPWORD.
+            AND.W  #$0FC0,D1
+            CMP.W  #$0E80,D1      *Check for JSR OPWORD.
             BNE N_JSR
             JSR SR_JSR
             BRA MAINLOOP
                      
-N_JSR:      EOR.L D1,D1
-            MOVE.W (A5),D1
-            ANDI.W #$0F00,D1    * BITWISE AND TO GET 2nd set of bits 11-8 position
-            CMP.B #$E,D1        * CHECK IF THE BITS = E(1110) IF YES = JSR
-            BNE  N_JSR_02
-            JSR SR_JSR           
-            BRA MAINLOOP     
-N_JSR_02:
+N_JSR:      
             JSR SR_DATA
             BRA MAINLOOP      
                         
@@ -219,17 +212,17 @@ N_SUBQ:
             
 value0110   EOR.L D1,D1
             MOVE.W (A5),D1
-            CMP.W #$0000,(A5)       *Check for BCC OPWORD. CHANGE HEX!
-            BNE N_BCC
-            JSR SR_BCC
+            ANDI.W #$FF00,D1
+            CMP.W #$6000,D1       *Check for BCC OPWORD. CHANGE HEX!
+            BNE N_BRA
+            JSR SR_BRA
             BRA MAINLOOP                   
 
-N_BCC:      
-            *CMP.W #$0000,(A5)          
-            BNE N_BCC_02             *CHECKS IF BRA OPWORD
-            JSR SR_BRA
+N_BRA:      
+
+            JSR SR_BCC
             BRA MAINLOOP
-N_BCC_02:
+N_BCC:
                 
             JSR SR_DATA            
             BRA MAINLOOP          
@@ -2593,12 +2586,70 @@ SR_RO_INVALID:
     ADDA.W  #4,sp *Reset the Stack location to not include the jump to this location.
     JMP    SR_DATA
 
-*BCS SUBROUTINE
+*BCC SUBROUTINE
 *______________
-SR_BCC:                    
-    NOP                                *DO STUFF HERE
-    ADDA.W  #2,A5
-    RTS 
+SR_BCC:
+BCC_CODE    DC.L    $0000,$0000,$0000,$0000,CC,CS,EQ,GE,GT,HI,LE,LS1,LT,MI,NE,PL,VC,VS                   
+        MOVE.L  A5,D1
+        JSR     HEX_STRING_L
+        LEA     STRHEXOUT,A1
+        MOVE.B  #14,D0          *TRAP TASK 14, Output A1 with no Carriage Return or Line Feed
+        TRAP    #15
+        MOVE.L  #$09420000,(A1) *Store hex value of ASCII output
+        MOVEA.L A1,A2
+        ADDA.W  #2,A2
+        EOR.L   D1,D1
+        MOVE.W  (A5),D1
+        ANDI.W  #$0F00,D1
+        EOR.L   D2,D2
+        MOVE.B  #6,D2
+        LSR.W   D2,D1
+        LEA  BCC_CODE(PC,D1),A3
+        MOVE.L  (A3),D2
+        MOVE.W  D2,(A2)
+        ADDA.W  #2,A2
+        MOVE.W  #$0900,(A2)     *Last 2 values of ASCII (since 4 letter OP)
+        TRAP    #15
+        
+        MOVE.W  (A5),D1
+        ANDI.W  #$00FF,D1
+        CMPI.B  #00,D1
+        BEQ     SR_BCC_WORD
+        MOVE.L  A5,A1
+        ADDA.L  D1,A1
+        MOVE.L  A1,D1
+        JSR     HEX_STRING_L
+        LEA     STRHEXOUT,A1
+        SUBQ    #1,A1
+        MOVE.B  #$24,(A1)
+        MOVE.B  #14,D0
+        TRAP    #15
+        ADDA.W  #2,A5
+        BRA     SR_BCC_OUT
+        
+SR_BCC_WORD
+        MOVE.L  A5,A2
+        ADDA.L  #2,A2
+        MOVE.W  (A2),D2
+        MOVE.L  A5,A2
+        ADDA.L  D2,A2
+        MOVE.L  A1,D1
+        JSR     HEX_STRING_L
+        LEA     STRHEXOUT,A1
+        SUBQ    #1,A1
+        MOVE.B  #24,(A1)
+        MOVE.B  #14,D0
+        ADDA.W  #4,A5
+        TRAP    #15
+        
+SR_BCC_OUT       
+        LEA STRHEXOUT,A1
+        MOVE.B  #14,D0
+        MOVE.L  #$0D0A0000,(A1)   *ASCII for CR,LF,0
+        TRAP    #15
+        
+        RTS
+
   
   
 *BCLR SUBROUTINE
@@ -2771,7 +2822,7 @@ SR_BRA_OUT
     * GET EA TO PRINT OUT
     ************************
     *MOVE ADDRESS POINTER TO NEXT OPWORD
-    ADDA.W  #2,A5
+    ADDA.W  #4,A5
     *OUTPUT FINAL CR,LF
     LEA STRHEXOUT,A1
     MOVE.B  #14,D0
@@ -2801,26 +2852,32 @@ JSR_EA      DC.L    SR_DATA,SR_DATA,EA_ADDRIND,SR_DATA,SR_DATA,SR_DATA,SR_DATA,E
     ********************
     *EA MODE CALCULATION
     ******************
+    MOVEA.L A5,A2
+    LEA     OP_BUFFER,A0
     EOR.L   D3,D3
     EOR.L   D4,D4
-    MOVE.B  (A2),D3 *Move OPWORD to D3
-    MOVE.B  D3,D4   *MOVE OPWORD to D4
-    ANDI.B  #$38,D3 *BITMASK TO FIND EA MODE
-    ANDI.B  #$07,D4 *BITMASK TO FIND REGISTER VALUE
-    LSR.B #1,D3
-    LSL.B #2,D4
+    MOVE.W  (A2),D3 *Move OPWORD to D3
+    MOVE.W  D3,D4   *MOVE OPWORD to D4
+    ANDI.W  #$0038,D3 *Bitmask EA Mode
+    ANDI.W  #$0007,D4 *Bitmask EA Register
+    LSR.L   #1,D3
+    LSL.L   #2,D4
     
-    CMP.B   #$1C,D3
-    BNE     SR_JSR_NOT_111
-
-    ADD.B   D4,D3            *GOES TO RIGHT SIDE OF TABLE (HAVE TO ADD REGISTERS TO MODE)
-    CMPA.L  JSR_EA(PC,D3),A3
+    CMP.L   #$1C,D3
+    BNE     SR_JSR_DST_EA_NOT_111
+    ADD.B   D4,D3 
+    CMP.B   #44,D3
+    BGT     SR_DATA           *GOES TO RIGHT SIDE OF TABLE (HAVE TO ADD REGISTERS TO MODE)
+    MOVE.L  D3,A1
+    CMPA.L  JSR_EA(A1),A3
     BEQ     SR_DATA
+    MOVE.L  JSR_EA(A1),(A0)
     BRA     SR_JSR_OUT
-
-SR_JSR_NOT_111:
-    CMPA.L  JSR_EA(PC,D3),A3  *LEFT SIDE OF TABLE   (REGISTER VALUE IS REGISTER NUMBER)
+SR_JSR_DST_EA_NOT_111:
+    MOVE.L  D3,A1
+    CMPA.L  JSR_EA(A1),A3  *LEFT SIDE OF TABLE   (REGISTER VALUE IS REGISTER NUMBER)
     BEQ     SR_DATA
+    MOVE.L  JSR_EA(A1),(A0)
 
 
     
@@ -2835,20 +2892,21 @@ SR_JSR_OUT
     LEA     STRHEXOUT,A1
     MOVE.B  #14,D0 *TRAP TASK 14, Output A1 with no Carriage Return or Line Feed
     TRAP    #15
-    MOVE.L  #$094F5249,(A1) 
+    MOVE.L  #$094A5352,(A1) 
     MOVEA.L A1,A2
+    ADDA.W  #2,A5
     ADDA.W  #4,A2
-    MOVE.B  #$0,(A2)
+    MOVE.W  #$0900,(A2)
     TRAP    #15
     MOVE.L  D2,A4
-    MOVEA.L JSR_EA(A4),A4
+    MOVE.L  (A0),A4
     JSR     (A4)
         
     ************************
     * GET EA TO PRINT OUT
     ************************
     *MOVE ADDRESS POINTER TO NEXT OPWORD
-    ADDA.W  #2,A5
+    
     *OUTPUT FINAL CR,LF
     LEA STRHEXOUT,A1
     MOVE.B  #14,D0
@@ -3226,6 +3284,20 @@ EXIT:
 *________________________
 CR      EQU    $0D
 LF      EQU    $0A
+CC      EQU    $4343
+CS      EQU    $4353
+EQ      EQU    $4551
+GE      EQU    $4745
+GT      EQU    $4754
+HI      EQU    $4849
+LE      EQU    $4C45
+LS1      EQU    $4C53
+LT      EQU    $4C54
+MI      EQU    $4D49
+NE      EQU    $4E45
+PL      EQU    $504C
+VC      EQU    $5643
+VS      EQU    $5653
                     *SIZE,EA1MODE,EA1REG,EA2MODE,EA2REG
 OP_BUFFER   DC.L    $00,$00,$00,$00,$00
 

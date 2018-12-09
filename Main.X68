@@ -2304,7 +2304,14 @@ BCLR_EA      DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,
     EOR.L D2,D2
     MOVE.W (A2),D2                                 
     ANDI.W #$0038,D2      
-    LSR.L  #4,D2
+    LSR.L  #3,D2
+    CMP.B  #0,D2
+    BEQ    BCLR_SIZE_LONG
+    MOVE.B #0,D2
+    BRA BCLR_SIZE_2
+BCLR_SIZE_LONG:
+    MOVE.B #4,D2
+BCLR_SIZE_2:
     LEA SR_DATA,A3
     MOVE.L D2,A1
     CMPA.L BCLR_SIZE(A1),A3
@@ -2920,6 +2927,7 @@ M_HOLD              DC.B    'Press Enter to scroll',0
 *~Font size~10~
 *~Tab type~1~
 *~Tab size~4~
+
 
 
 

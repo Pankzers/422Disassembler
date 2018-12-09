@@ -101,9 +101,12 @@ N_CMPI:
             
 N_ORI:      EOR.L D1,D1
             MOVE.W (A5),D1
-            AND.W #$180,D1       *BITWISE AND TO CHECK IF = 111 = BCLR  
-            CMP.W #$180,D1       *CHECK FOR  BCLR  WORD
+            AND.W #$0180,D1       *BITWISE AND TO CHECK IF = 111 = BCLR  
+            CMP.W #$0180,D1       *CHECK FOR  BCLR  WORD
+            BEQ BCLR
+            CMP.W #$0080,D1
             BNE N_BCLR
+BCLR:
             JSR SR_BCLR
             BRA MAINLOOP 
 N_BCLR:
@@ -2368,21 +2371,40 @@ SR_BCLR_OUT:
     
     EOR.L   D1,D1
     MOVE.W  (A5),D1
-    ADDA.W  #2,A5
+    
     LEA     OP_BUFFER,A0
     MOVE.L  (A0)+,A1
     JSR     (A1)
 
-    EOR.L   D5,D5
+    MOVE.W  (A5),D1
+    ANDI.W  #$01C0,D1
+    CMP.W   #$0080,D1
+    BEQ     SR_BCLR_IMM
+SR_BCLR_DATA:
+    MOVE.L  #1,D5
     MOVE.L  #1,D6
-    MOVE.L  (A0)+,A1
+    MOVE.W  (A5),D1
+    JSR     EA_DATA
+    ADDA.W  #2,A5
+    BRA SR_BCLR_OUT_2
+SR_BCLR_IMM:
+    MOVE.W  (A5),D1
+    ADDA.W  #2,A5
+    MOVE.L  #1,D6
+    LEA     OP_BUFFER,A2
+    LEA     SIZE_BYTE,A3
+    MOVE.L  A3,(A2)
+    JSR     EA_IMM
+SR_BCLR_OUT_2:
+
+    
+  
+    EOR.L   D5,D5
+    EOR.L   #1,D6
+    MOVE.L  (A0),A1
     ADDA.W  #4,A0
     JSR     (A1)
         
-    MOVE.B  D6,D5
-    EOR.L   D6,D6
-    MOVE.L  (A0),A1
-    JSR     (A1)
     LEA STRHEXOUT,A1
     MOVE.B  #14,D0
     MOVE.L  #$0D0A0000,(A1)   *ASCII for CR,LF,0
@@ -2927,6 +2949,8 @@ M_HOLD              DC.B    'Press Enter to scroll',0
 *~Font size~10~
 *~Tab type~1~
 *~Tab size~4~
+
+
 
 
 

@@ -119,9 +119,6 @@ START:                  ; first instruction of program
     NEG.B D2
     
 * EOR
-    EOR.L #$FFFFFFFF,D2
-    EOR.L #$0000,D2
-    EOR.B #4,D2
     EOR.B D1,D2
     EOR.L D2,(A2)
     EOR.L D1,(A1)+

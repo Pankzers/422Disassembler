@@ -291,8 +291,8 @@ N_EOR:
                     
 value1100
             MOVE.W (A5),D1
-            AND.W #$1C0,D1      * BITWISE AND TO CHECK IF = 111 = MULS  
-            CMP.W #$1C0,D1        *CHECK FOR  MULS WORD
+            AND.W #$01C0,D1      * BITWISE AND TO CHECK IF = 111 = MULS  
+            CMP.W #$01C0,D1        *CHECK FOR  MULS WORD
             BNE N_MULS
             JSR SR_MULS
             BRA MAINLOOP
@@ -1461,34 +1461,50 @@ SR_CMPI_INVALID:
 *MULS SUBROUTINE
 *______________
 SR_MULS:
-MULS_SIZE    DC.L    SIZE_BYTE,SIZE_WORD,SIZE_LONG,SR_DATA
-MULS_EA      DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_LONG,EA_ABS_SHORT,SR_DATA,SR_DATA,SR_DATA
-        *READ OP WORD AND CONFIRM VALIDITY (Otherwise JMP to DATA and then RTS to main.)
-         MOVEA.L A5,A2
-         ADDA.W #1,A2
-         EOR.L D2,D2
-         MOVE.B (A2),D2
-         ANDI.B #$C0,D2                         *LIKELY NEED TO CHANGE THESE VALUES
-         LSR.B  #4,D2                           *LIKELY NEED TO CHANGE SHIFT AMOUNT TOO??
-         LEA SR_DATA, A3
-         CMPA.L MULS_SIZE(PC,D2),A3
-         BEQ    SR_DATA
-         BRA SR_MULS_OUT
-         
+MULS_EA      DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DATA,SR_DATA,EA_ABS_SHORT,EA_ABS_LONG,SR_DATA,SR_DATA,EA_IMM
+*READ OP WORD AND CONFIRM VALIDITY (Otherwise JMP to DATA and then RTS to main.)
+        LEA OP_BUFFER,A0
+        MOVEA.L A5,A2
+        MOVE.W  D2,D3
+        LEA SIZE_WORD,A1
+        MOVE.L A1,(A0)+
         
-        ******************
-        *EA MODE CALCULATION
-        ******************
-         EOR.L   D3,D3
-         EOR.L   D4,D4
-         MOVE.B  (A2),D3 *Move OPWORD to D3
-         MOVE.B  D3,D4   *MOVE OPWORD to D4
-         ANDI.B  #$38,D3 *BITMASK TO FIND EA MODE
-         ANDI.B  #$07,D4 *BITMASK TO FIND REGISTER VALUE
-        
-        ******************
-        *PRINT OUT
-        ******************
+
+  
+        EOR.L   D3,D3
+        EOR.L   D4,D4
+        MOVE.W  (A2),D3 *Move OPWORD to D3
+        MOVE.W  D3,D4   *MOVE OPWORD to D4
+        ANDI.W  #$0038,D3 *Bitmask EA Mode
+        ANDI.W  #$0007,D4 *Bitmask EA Register
+        LSR.L   #1,D3
+        LSL.L   #2,D4
+    
+        CMP.L   #$1C,D3
+        BNE     SR_MULS_DST_EA_NOT_111
+        ADD.B   D4,D3 
+        CMP.B   #44,D3
+        BGT     SR_DATA           *GOES TO RIGHT SIDE OF TABLE (HAVE TO ADD REGISTERS TO MODE)
+        MOVE.L  D3,A1
+        CMPA.L  MULS_EA(A1),A3
+        BEQ     SR_MULS_INVALID
+        MOVE.L  MULS_EA(A1),(A0)+
+        MOVE.L  D4,(A0)+
+        BRA     SR_MULS_DST_EA_2
+SR_MULS_DST_EA_NOT_111:
+        MOVE.L  D3,A1
+        CMPA.L  MULS_EA(A1),A3  *LEFT SIDE OF TABLE   (REGISTER VALUE IS REGISTER NUMBER)
+        BEQ     SR_MULS_INVALID
+        MOVE.L  MULS_EA(A1),(A0)+
+        MOVE.L  D4,(A0)+
+SR_MULS_DST_EA_2:
+        LEA     EA_DATA,A1
+        MOVE.L  A1,(A0)+
+        MOVE.W  (A2),D4
+        ANDI.W  #$0E00,D4 *Bitmask EA Register
+        LSR.L   #7,D4
+        MOVE.L  D4,(A0)+
+
 SR_MULS_OUT        
         MOVE.L  A5,D1
         JSR     HEX_STRING_L
@@ -1498,16 +1514,37 @@ SR_MULS_OUT
         MOVE.L  #$094D554C,(A1) *Store hex value of ASCII output
         MOVEA.L A1,A2
         ADDA.W  #4,A2
-        MOVE.W  #$5300,(A2)     *Last value of ASCII (since 4 letter OP)
+        MOVE.W  #$5300,(A2)     *Last 2 values of ASCII (since 4 letter OP)
         TRAP    #15
-        MOVE.L  D2,A4
-        MOVEA.L MULS_SIZE(A4),A4
-        JSR     (A4)
         
+        EOR.L   D1,D1
+        MOVE.W  (A5),D1
         ADDA.W  #2,A5
+        LEA     OP_BUFFER,A0
+        MOVE.L  (A0)+,A1
+        JSR     (A1)
         
-        RTS    
-   
+        MOVE.L  #0,D5
+        MOVE.B  #1,D6
+        MOVE.L  (A0)+,A1
+        ADDA.W  #4,A0
+        JSR     (A1)
+        
+        MOVE.L  #1,D5
+        EOR.L   D6,D6
+        MOVE.L  (A0),A1
+        JSR     (A1)
+        
+        LEA STRHEXOUT,A1
+        MOVE.B  #14,D0
+        MOVE.L  #$0D0A0000,(A1)   *ASCII for CR,LF,0
+        TRAP    #15
+        RTS
+        
+SR_MULS_INVALID:
+        *MOVE.L  (sp)+,D0
+        ADDA.W  #4,sp *Reset the Stack location to not include the jump to this location.
+        JMP    N_MULS   
 
 *DIVS SUBROUTINE
 *______________
@@ -2878,9 +2915,9 @@ EA_IMM_WORD:
     ADDA.W  #4,A1
     MOVEA.L A1,A2
     EOR.L   D2,D2
-    MOVE.W  (A1),D2
+    MOVE.L  (A1),D2
     LEA     STRHEXOUT,A1
-    MOVE.W  D2,(A1)
+    MOVE.L  D2,(A1)
     MOVEA.L A2,A1
     ADDA.W  #2,A5
     BRA     EA_IMM_OUT
@@ -2949,6 +2986,7 @@ M_HOLD              DC.B    'Press Enter to scroll',0
 *~Font size~10~
 *~Tab type~1~
 *~Tab size~4~
+
 
 
 

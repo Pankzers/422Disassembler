@@ -62,8 +62,14 @@ START:                  ; first instruction of program
     SUBQ.L #7,$10001000
     
 * MULS    
-    MULS.W #4,D0
-    MULS.W #$0000FFFF,D0
+    MULS.W D1,D2
+    MULS.W (A1),D2
+    MULS.W (A1)+,D2
+    MULS.W -(A1),D2
+    MULS.W $1000,D2
+    MULS.W #$0000FFFF,D2
+    MULS.W #4,D2
+    
 * DIVS    
     MOVE.B #8,D0
     DIVS.W #2,D0
@@ -227,6 +233,7 @@ SUB:
 * Put variables and constants here
 END:
     END    START        ; last line of source
+
 
 
 

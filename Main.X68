@@ -1904,10 +1904,7 @@ SR_OR_OUT
         LEA     STRHEXOUT,A1
         MOVE.B  #14,D0          *TRAP TASK 14, Output A1 with no Carriage Return or Line Feed
         TRAP    #15
-        MOVE.L #$094F5220,(A1) *stores "OR" IN ASCI, WITH SPACE AT END
-        MOVEA.L A1,A2
-        ADDA.W  #4,A2
-        MOVE.W  #$00,(A2)     *Last 2 values of ASCII (since 4 letter OP)
+        MOVE.L #$094F5200,(A1) *stores "OR" IN ASCI, WITH SPACE AT END
         TRAP    #15
         
         EOR.L   D1,D1
@@ -3108,6 +3105,7 @@ M_HOLD              DC.B    'Press Enter to scroll',0
 *~Font size~10~
 *~Tab type~1~
 *~Tab size~4~
+
 
 
 

@@ -85,10 +85,19 @@ START:                  ; first instruction of program
     LEA $5000,A2
     LEA $20001000,A2    
 * OR
-    MOVE.L #$55555555,D2
+    OR.B D0,D2
+    OR.W (A0),D2
+    OR.W (A0)+,D2
+    OR.W -(A0),D2
+    OR.W $1000,D2
+    OR.L $20001000,D2
     OR.L #$FFFFFFFF, D2
     OR.B #1,D2
-    OR.L D2,(A0)
+    OR.L D0,(A2)
+    OR.L D0,(A2)+
+    OR.L D0,-(A2)
+    OR.L D2,$1000
+    OR.L D2,$20001000
 * ORI
     ORI.B #6,D2
     ORI.L #6,(A2)

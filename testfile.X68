@@ -38,7 +38,7 @@ START:                  ; first instruction of program
     ADDA.W -(A2),A1
     ADDA.W $1000,A1
     ADDA.W $10001000,A1
-* SUB and SUBA    
+* SUB and SUBQ    
     SUB.B D2,D1
     SUB.W A2,D1
     SUB.L (A2),D1
@@ -52,6 +52,15 @@ START:                  ; first instruction of program
     SUB.W D2,-(A1)
     SUB.L D2,$2000
     SUB.L D2,$20010001
+    
+    SUBQ.B #1,D2
+    SUBQ.W #2,A3
+    SUBQ.W #3,(A3)
+    SUBQ.L #4,(A3)+
+    SUBQ.L #5,-(A3)
+    SUBQ.L #6,$1000
+    SUBQ.L #7,$10001000
+    
 * MULS    
     MULS.W #4,D0
     MULS.W #$0000FFFF,D0

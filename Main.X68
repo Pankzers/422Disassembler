@@ -265,8 +265,8 @@ value1010
             BRA MAINLOOP
             
 value1011   MOVE.W (A5),D1
-            AND.W #$0010,D1
-            CMP.W #$0010,D1
+            AND.W #$100,D1           *check for EOR opword
+            CMP.W #$100,D1
             BLT CMP
             JSR SR_EOR
             BRA MAINLOOP
@@ -277,13 +277,13 @@ CMP:
 
 
 N_CMP:
-            JSR SR_EOR              *needed for SR_CMP 
+            JSR SR_DATA              *needed for SR_CMP 
             BRA MAINLOOP           
          
          
 N_EOR:
              JSR SR_DATA              *needed for SR_EOR 
-             BRA MAINLOOP             
+             BRA MAINLOOP           
          
                     
 value1100

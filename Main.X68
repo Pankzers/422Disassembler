@@ -1,3 +1,11 @@
+*-----------------------------------------------------------
+* Title      : Disassembler by NEED THIRD
+* Written by : Connor Browne, David Exton, Branavan Nagendiram
+* Date       : 11/23/18
+* Description: Disassemble instructions from a user specified starting
+*              and ending memory address from the Motorola 68k architecture.
+*-----------------------------------------------------------
+
 INPSTART    EQU $500
 INPEND      EQU $520
 STRHEXOUT   EQU $540
@@ -849,7 +857,6 @@ SR_ADD_DST_DN_NOT_111:
         MOVE.L  D4,(A0)+
         BRA     SR_ADD_OUT
 SR_ADD_DST_EA:
-
   
         EOR.L   D3,D3
         EOR.L   D4,D4
@@ -1563,9 +1570,10 @@ DIVS_EA      DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,
         MOVE.W  D2,D3
         LEA SIZE_WORD,A1
         MOVE.L A1,(A0)+
-        
-
-  
+         
+    ********************
+    *EA MODE CALCULATION
+    ******************
         EOR.L   D3,D3
         EOR.L   D4,D4
         MOVE.W  (A2),D3 *Move OPWORD to D3
@@ -1791,11 +1799,9 @@ SR_NEG_OUT:
     JSR     (A4)
     MOVE.L  D3,A4
     MOVEA.L NEG_EA(A4),A4
-    EOR.L   D5,D5    *if we wanted a comma (if we had 2 arguments, insert 1 into D5 after EOR) 
+    EOR.L   D5,D5     
     JSR     (A4)
     
-    *BRANCH FOR <EA> MODE AND OUTPUT ARGUMENTS
-        *No branching is necessary as there are no arguments for NOP
     
     *MOVE ADDRESS POINTER TO NEXT OPWORD
     *ADDA.W  #2,A5
@@ -1958,7 +1964,7 @@ ORI_EA DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR_DAT
         LEA OP_BUFFER,A0
         MOVEA.L A5,A2
         EOR.L   D2,D2
-        MOVE.W  (A2),D2                                *UPDATE VALIDITY 
+        MOVE.W  (A2),D2                                *Validation 
         ANDI.W  #$00C0,D2
         LSR.L   #4,D2
         MOVE.W  D2,D3
@@ -2880,9 +2886,7 @@ SR_JSR_DST_EA_NOT_111:
     MOVE.L  JSR_EA(A1),(A0)
 
 
-    
-
-    *BRA SR_JSR_OUT    
+   
     ******************
     *PRINT OUT
     ******************
@@ -2938,8 +2942,8 @@ SR_RTS:
     TRAP    #15
     
     *BRANCH FOR <EA> MODE AND OUTPUT ARGUMENTS
-        *No branching is necessary as there are no arguments for NOP
-    
+        *No branching is necessary as there are no arguments for RTS  
+  
     *MOVE ADDRESS POINTER TO NEXT OPWORD
     ADDA.W  #2,A5
     

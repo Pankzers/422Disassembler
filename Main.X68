@@ -108,7 +108,7 @@ N_BCLR:
             EOR.L D1,D1
             MOVE.W (A5),D1
             ANDI.W #$0F00,D1
-            CMP.W #$0,D1             *Check for ORI OPWORD. CHANGE HEX!
+            CMP.W #$0,D1                  *Check for ORI OPWORD. CHANGE HEX!
             BNE N_ORI
             JSR SR_ORI
             BRA MAINLOOP
@@ -159,13 +159,13 @@ N_MOVE_0011:
             JSR SR_DATA
             BRA MAINLOOP
             
-value0100   CMP.W #$4E71,(A5)   *Check for NOP OPWORD
+value0100   CMP.W #$4E71,(A5)    *Check for NOP OPWORD
             BNE N_NOP
             JSR SR_NOP
             BRA MAINLOOP
             
 N_NOP:
-            CMP.W #$4E75,(A5)   *Check for RTS OPWORD
+            CMP.W #$4E75,(A5)     *Check for RTS OPWORD
             BNE N_RTS
             JSR SR_RTS
             BRA MAINLOOP
@@ -174,7 +174,7 @@ N_RTS:
             EOR.L D1,D1
             MOVE.W (A5),D1
             AND.W #$FF00,D1
-            CMP.W #$4400,D1     *Check for NEG OPWORD
+            CMP.W #$4400,D1        *Check for NEG OPWORD
             BNE N_NEG
             JSR SR_NEG
             BRA MAINLOOP
@@ -190,7 +190,7 @@ N_NEG:      EOR.L D1,D1
 N_LEA:      EOR.L D1,D1
             MOVE.W (A5),D1
             AND.W  #$FC0,D1
-            CMP.W  #$E80,D1     *Check for JSR OPWORD.
+            CMP.W  #$E80,D1      *Check for JSR OPWORD.
             BNE N_JSR
             JSR SR_JSR
             BRA MAINLOOP
@@ -242,7 +242,7 @@ value0111
 value1000   
             MOVE.W (A5),D1
             AND.W #$01C0,D1      * BITWISE AND TO CHECK IF = 111 = DIVS  
-            CMP.W #$01C0,D1        *CHECK FOR  DIVS WORD
+            CMP.W #$01C0,D1        *CHECK FOR  DIVS OPWORD
             BNE N_DIVS
             JSR SR_DIVS
             BRA MAINLOOP
@@ -306,11 +306,11 @@ N_MULS:
 
 value1101   
 
-            JSR SR_ADD
+            JSR SR_ADD            *Must be ADD
             BRA MAINLOOP
             
 N_ADD:
-            JSR SR_ADDA
+            JSR SR_ADDA          *must be ADDA
             BRA MAINLOOP
 
          
@@ -528,8 +528,8 @@ MOVE_EA_DST DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,S
         LEA OP_BUFFER,A0
         MOVEA.L A5,A2
         EOR.L D2,D2
-        MOVE.W (A2),D2                                *UPDATE VALIDITY 
-        ANDI.W #$3000,D2
+        MOVE.W (A2),D2                                
+        ANDI.W #$3000,D2                       *VALIDATION
         MOVE.L #10,D1
         LSR.L  D1,D2
         LEA SR_DATA, A3
@@ -554,7 +554,7 @@ SR_MOVE_EA1:
         
         CMP.L   #$1C,D3
         BNE     SR_MOVE_EA1_NOT_111
-        ADD.B   D4,D3            *GOES TO RIGHT SIDE OF TABLE (HAVE TO ADD REGISTERS TO MODE)
+        ADD.B   D4,D3             *GOES TO RIGHT SIDE OF TABLE (HAVE TO ADD REGISTERS TO MODE)
         CMP.B   #44,D3
         BGT     SR_DATA
         MOVE.L  D3,A1
@@ -640,7 +640,6 @@ SR_MOVE_OUT
         RTS
         
 SR_MOVE_INVALID:
-        *MOVE.L  (sp)+,D0
         ADDA.W  #4,sp *Reset the Stack location to not include the jump to this location.
         JMP    (A4)
 
@@ -653,7 +652,7 @@ MOVEA_EA_SRC DC.L    EA_DATA,EA_ADDR,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,
         LEA OP_BUFFER,A0
         MOVEA.L A5,A2
         EOR.L D2,D2
-        MOVE.W (A2),D2                                *UPDATE VALIDITY 
+        MOVE.W (A2),D2                                *VALIDATION
         ANDI.W #$3000,D2
         MOVE.L #10,D1
         LSR.L  D1,D2
@@ -695,6 +694,9 @@ SR_MOVEA_EA1_NOT_111:
         MOVE.L  MOVEA_EA_SRC(A1),(A0)+
         MOVE.L  D4,(A0)+
 
+        ******************
+        *PRINT OUT
+        ******************
 SR_MOVEA_OUT        
         MOVE.L  A5,D1
         JSR     HEX_STRING_L
@@ -722,7 +724,6 @@ SR_MOVEA_OUT
         
         MOVE.B  D6,D5
         EOR.L   D6,D6
-        *MOVE.L  (A0),A1
         JSR     EA_ADDR
         
         LEA STRHEXOUT,A1
@@ -732,7 +733,6 @@ SR_MOVEA_OUT
         RTS
         
 SR_MOVEA_INVALID:
-        *MOVE.L  (sp)+,D0
         ADDA.W  #4,sp *Reset the Stack location to not include the jump to this location.
         JMP    (A4) 
 
@@ -798,7 +798,7 @@ ADD_EA_DST DC.L    SR_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR
         LEA OP_BUFFER,A0
         MOVEA.L A5,A2
         EOR.L   D2,D2
-        MOVE.W  (A2),D2                                *UPDATE VALIDITY 
+        MOVE.W  (A2),D2                                *VALIDATION
         ANDI.W  #$01C0,D2
         LSR.L   #4,D2
         MOVE.W  D2,D3
@@ -820,6 +820,9 @@ ADD_EA_DST DC.L    SR_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR
         LSR.L   #7,D4
         MOVE.L  D4,(A0)+
   
+        ******************
+        *EA MODE CALCULATION
+        ******************
         EOR.L   D3,D3
         EOR.L   D4,D4
         MOVE.W  (A2),D3 *Move OPWORD to D3
@@ -828,6 +831,7 @@ ADD_EA_DST DC.L    SR_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR
         ANDI.W  #$0007,D4 *Bitmask EA Register
         LSR.L   #1,D3
         LSL.L   #2,D4
+
         MOVE.L  #1,D5
         CMP.L   #$1C,D3
         BNE     SR_ADD_DST_DN_NOT_111
@@ -885,6 +889,9 @@ SR_ADD_DST_EA_2:
         MOVE.L  D4,(A0)+
         EOR.L   D5,D5
 
+        ******************
+        *PRINT OUT
+        ******************
 SR_ADD_OUT        
         MOVE.L  A5,D1
         JSR     HEX_STRING_L
@@ -904,7 +911,6 @@ SR_ADD_OUT
         MOVE.L  (A0)+,A1
         JSR     (A1)
         
-        *EOR.L   D5,D5
         MOVE.B  #1,D6
         MOVE.L  (A0)+,A1
         ADDA.W  #4,A0
@@ -926,7 +932,6 @@ SR_ADD_OUT_2:
         RTS
         
 SR_ADD_INVALID:
-        *MOVE.L  (sp)+,D0
         ADDA.W  #4,sp *Reset the Stack location to not include the jump to this location.
         JMP    N_ADD 
   
@@ -942,14 +947,13 @@ ADDA_EA_SRC DC.L    EA_DATA,EA_ADDR,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,S
         LEA OP_BUFFER,A0
         MOVEA.L A5,A2
         EOR.L   D2,D2
-        MOVE.W  (A2),D2                                *UPDATE VALIDITY 
-        ANDI.W  #$0100,D2
+        MOVE.W  (A2),D2                              
+        ANDI.W  #$0100,D2                       *VALIDATION
         LSR.L   #6,D2
         MOVE.W  D2,D3
         LEA SR_DATA, A3
         MOVE.L D2,A1
         MOVE.L ADDA_SIZE(A1),(A0)+
-        
 
   
         EOR.L   D3,D3
@@ -986,6 +990,9 @@ SR_ADDA_DST_EA_2:
         LSR.L   #7,D4
         MOVE.L  D4,(A0)+
 
+        ******************
+        *PRINT OUT
+        ******************
 SR_ADDA_OUT        
         MOVE.L  A5,D1
         JSR     HEX_STRING_L
@@ -1011,7 +1018,6 @@ SR_ADDA_OUT
         ADDA.W  #4,A0
         JSR     (A1)
         
-        *EOR.L   D5,D5
         MOVE.L  #1,D5
         EOR.L   D6,D6
         MOVE.L  (A0),A1
@@ -1024,7 +1030,6 @@ SR_ADDA_OUT
         RTS
         
 SR_ADDA_INVALID:
-        *MOVE.L  (sp)+,D0
         ADDA.W  #4,sp *Reset the Stack location to not include the jump to this location.
         JMP    N_ADDA 
     
@@ -1038,7 +1043,7 @@ SUB_EA_DST DC.L    SR_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,SR
         LEA OP_BUFFER,A0
         MOVEA.L A5,A2
         EOR.L   D2,D2
-        MOVE.W  (A2),D2                                *UPDATE VALIDITY 
+        MOVE.W  (A2),D2                                *Validation
         ANDI.W  #$01C0,D2
         LSR.L   #4,D2
         MOVE.W  D2,D3
@@ -1086,9 +1091,7 @@ SR_SUB_DST_DN_NOT_111:
         MOVE.L  SUB_EA_DST(A1),(A0)+
         MOVE.L  D4,(A0)+
         BRA     SR_SUB_OUT
-SR_SUB_DST_EA:
-
-  
+SR_SUB_DST_EA:  
         EOR.L   D3,D3
         EOR.L   D4,D4
         MOVE.W  (A2),D3 *Move OPWORD to D3
@@ -1133,10 +1136,10 @@ SR_SUB_OUT
         MOVE.L  #$09535542,(A1) *Store hex value of ASCII output
         MOVEA.L A1,A2
         ADDA.W  #4,A2
-        MOVE.W  #$00,(A2)     *Last 2 values of ASCII (since 4 letter OP)
+        MOVE.W  #$00,(A2)        *Last 2 values of ASCII (since 4 letter OP)
         TRAP    #15
         
-        EOR.L   D1,D1
+        EOR.L   D1,D1            *Clears D1
         MOVE.W  (A5),D1
         ADDA.W  #2,A5
         LEA     OP_BUFFER,A0
@@ -1165,7 +1168,6 @@ SR_SUB_OUT_2:
         RTS
         
 SR_SUB_INVALID:
-        *MOVE.L  (sp)+,D0
         ADDA.W  #4,sp *Reset the Stack location to not include the jump to this location.
         JMP    N_SUB    
 
@@ -1178,7 +1180,7 @@ SUBQ_EA      DC.L    EA_DATA,EA_ADDR,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,
         LEA OP_BUFFER,A0
         MOVEA.L A5,A2
         EOR.L D2,D2
-        MOVE.W (A2),D2                                *UPDATE VALIDITY 
+        MOVE.W (A2),D2                                *Validation
         ANDI.W #$00C0,D2
         LSR.L  #4,D2
         LEA SR_DATA, A3
@@ -1228,10 +1230,11 @@ SR_SUBQ_OUT
         LEA     STRHEXOUT,A1
         MOVE.B  #14,D0          *TRAP TASK 14, Output A1 with no Carriage Return or Line Feed
         TRAP    #15
-        MOVE.L  #$09535542,(A1) *Store hex value of ASCII output
+        MOVE.L  #$09535542,(A1) **store "   SUB" ASCII ouput
+
         MOVEA.L A1,A2
         ADDA.W  #4,A2
-        MOVE.W  #$5100,(A2)     *Last 2 values of ASCII (since 4 letter OP)
+        MOVE.W  #$5100,(A2)     *stores "Q" and 0 for null termination
         TRAP    #15
         
         EOR.L   D1,D1
@@ -1285,7 +1288,7 @@ CMP_EA      DC.L    EA_DATA,EA_ADDR,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,S
     MOVEA.L A5,A2
     EOR.L D2,D2
     MOVE.W (A2),D2                                 
-    ANDI.W #$01C0,D2      
+    ANDI.W #$01C0,D2                *Validation
     LSR.L  #4,D2
     LEA SR_DATA,A3
     MOVE.L D2,A1
@@ -1380,7 +1383,7 @@ CMPI_EA      DC.L    EA_DATA,SR_DATA,EA_ADDRIND,EA_ADDRIND_PINC,EA_ADDRIND_PDEC,
     MOVEA.L A5,A2
     EOR.L D2,D2
     MOVE.W (A2),D2                                 
-    ANDI.W #$00C0,D2      
+    ANDI.W #$00C0,D2      *VALIDATION
     LSR.L  #4,D2
     LEA SR_DATA,A3
     MOVE.L D2,A1
@@ -1430,7 +1433,7 @@ SR_CMPI_OUT:
     LEA     STRHEXOUT,A1
     MOVE.B  #14,D0           *TRAP TASK 14, Output A1 with no Carriage Return or Line Feed
     TRAP    #15
-    MOVE.L  #$09434D50,(A1)  *Store hex value of ASCII output
+    MOVE.L  #$09434D50,(A1)  *STORE CMP for ASCII
     MOVEA.L A1,A2
     ADDA.W  #4,A2
     MOVE.W  #$4900,(A2)      *Last value of ASCII (since 4 letter OP)
